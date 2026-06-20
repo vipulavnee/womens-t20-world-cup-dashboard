@@ -367,6 +367,10 @@ function currentScore(match){
   const s=Array.isArray(match?.scores)?match.scores:[];
   if(!s.length)return null;
   if(isTest(match))return s.find(row=>String(row?.score||"").includes("&"))||s.find(row=>row?.overs)||s[0];
+  if(s.length>=2 && stateOf(match)==="Live"){
+    const withOvers=s.filter(row=>Number.isFinite(oversDec(row?.overs)));
+    if(withOvers.length>=2)return [...withOvers].sort((a,b)=>oversDec(a.overs)-oversDec(b.overs))[0];
+  }
   if(s.length>=2)return s[s.length-1];
   return s[0];
 }

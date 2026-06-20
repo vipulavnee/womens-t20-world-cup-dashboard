@@ -593,7 +593,10 @@ function parseLiveDetails(text, scores, teams = []) {
     new RegExp(`\\b(?:${teamPattern})\\s+(?:opt|opts|chose|choose|elected|elects)\\s+to\\s+(?:bat|bowl)\\b`, "i")
   );
 
-  if (tossMatch) details.toss = clean(tossMatch[0]);
+  const matchShorts = teams.map(getTeamShort);
+  if (tossMatch && matchShorts.some(short => tossMatch[0].toUpperCase().startsWith(short))) {
+    details.toss = clean(tossMatch[0]);
+  }
 
   const crrMatch = source.match(/\bCRR[:\s]*([\d.]+)/i);
   if (crrMatch) details.rr = crrMatch[1];
