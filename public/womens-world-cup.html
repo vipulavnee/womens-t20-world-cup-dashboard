@@ -142,13 +142,16 @@ let activeCompetition = localStorage.getItem("activeCompetition") || TOURNAMENT_
 const $ = id => document.getElementById(id);
 const stateOf = m => String(m?.state || "").trim();
 
-const teamShort = t => String(t || "")
-  .replace("Australia Women","AUS-W").replace("Bangladesh Women","BAN-W")
-  .replace("England Women","ENG-W").replace("India Women","IND-W")
-  .replace("Ireland Women","IRE-W").replace("New Zealand Women","NZ-W")
-  .replace("Netherlands Women","NED-W").replace("Pakistan Women","PAK-W")
-  .replace("Scotland Women","SCO-W").replace("South Africa Women","SA-W")
-  .replace("Sri Lanka Women","SL-W").replace("West Indies Women","WI-W");
+const TEAM_SHORT = {
+  "Australia Women":"AUS-W","Bangladesh Women":"BAN-W","England Women":"ENG-W",
+  "India Women":"IND-W","Ireland Women":"IRE-W","New Zealand Women":"NZ-W",
+  "Netherlands Women":"NED-W","Pakistan Women":"PAK-W","Scotland Women":"SCO-W",
+  "South Africa Women":"SA-W","Sri Lanka Women":"SL-W","West Indies Women":"WI-W",
+  "Afghanistan":"AFG","Australia":"AUS","Bangladesh":"BAN","England":"ENG",
+  "India":"IND","Ireland":"IRE","New Zealand":"NZ","Pakistan":"PAK",
+  "South Africa":"RSA","Sri Lanka":"SL","West Indies":"WI","Zimbabwe":"ZIM"
+};
+const teamShort = t => TEAM_SHORT[String(t || "")] || String(t || "");
 
 function teamClass(t){
   t=String(t||"").toLowerCase();
@@ -303,6 +306,9 @@ function getMatchNumber(m){
   if(text.includes("qualifier-2") || text.includes("qualifier 2")) return "Qualifier 2";
   if(text.includes("eliminator")) return "Eliminator";
   if(text.includes("final")) return "Final 2026";
+
+  const formatMatch=text.match(/\b(\d{1,2})(st|nd|rd|th)?[-\s]*(odi|test|t20i)\b/i);
+  if(formatMatch)return `${formatMatch[1]}${formatMatch[2]||""} ${formatMatch[3].toUpperCase()}`;
 
   return text.match(/\b(\d{1,3})(?:st|nd|rd|th)?[-\s]*match\b/i)?.[1] || "";
 }
@@ -603,6 +609,7 @@ function winPredictor(match){
 
   if(st === "Upcoming") return ["Pre-match", "blue"];
   if(activeCompetition === "England vs New Zealand" && st !== "Finished") return ["Test match", "blue"];
+  if(isInningsBreak(match)) return ["Awaiting chase", "blue"];
 
   if(st === "Finished"){
     const status = String(match?.status || "");
@@ -778,17 +785,17 @@ function renderMain(){
   }
 
   $("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">Recent & Upcoming</div></div><div class="section">
-    <div class="timer">
+    ${upcoming?`<div class="timer">
   <div>
-    <b>${upcoming?.name||`No upcoming ${competitionLabel()} match found`}</b>
-    <div class="match-status">${upcoming?`${getMatchNumber(upcoming)||"--"} · ${upcomingStartLabel(upcoming)}`:""}</div>
+    <b>${upcoming.name}</b>
+    <div class="match-status">${getMatchNumber(upcoming)||"--"} · ${upcomingStartLabel(upcoming)}</div>
   </div>
 
   <div class="timer-right">
     <small>Next Match Starts in: </small>
     <div class="countdown">${countdown(upcoming)}</div>
   </div>
-</div>
+</div>`:""}
 
     <div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div>
 
