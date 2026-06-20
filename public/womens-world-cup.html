@@ -599,7 +599,9 @@ function winPredictor(match){
       return ["Building...", "blue"];
     }
 
-    const projected = (r / o) * 20;
+    const rawProjected = (r / o) * 20;
+    const earlyOversWeight = o < 5 ? Math.max(0.2, o / 5) : 1;
+    const projected = 155 + (rawProjected - 155) * earlyOversWeight;
 
     let battingPct = 50;
 
@@ -682,8 +684,9 @@ function winPredictor(match){
 
   let chasePct = 50;
 
-  // Run-rate equation
-  chasePct += (crr - rrr) * 10;
+  // Run rate is deliberately dampened during the volatile first five overs.
+  const earlyChaseWeight = chaseOvers < 5 ? Math.max(0.2, chaseOvers / 5) : 1;
+  chasePct += (crr - rrr) * 10 * earlyChaseWeight;
 
   // Wickets remaining
   chasePct += (wicketsLeft - 7) * 15;
