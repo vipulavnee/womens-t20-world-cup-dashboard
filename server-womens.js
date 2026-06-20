@@ -412,6 +412,30 @@ scores.push({
   return chooseBestScores(scores);
 }
 
+function extractCompositeScores(text, teams) {
+  const source = clean(text);
+  const scores = [];
+
+  for (const team of teams) {
+    const short = getTeamShort(team);
+    const escaped = short.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = source.match(
+      new RegExp(`\\b${escaped}\\s+(\\d{1,3}(?:\\/\\d{1,2})?)(?:\\s*&\\s*(\\d{1,3}(?:\\/\\d{1,2})?))?`, "i")
+    );
+    if (!match) continue;
+
+    scores.push({
+      team: short,
+      score: match[2] ? `${match[1]} & ${match[2]}` : match[1],
+      overs: "",
+      rr: "",
+      raw: clean(match[0])
+    });
+  }
+
+  return scores;
+}
+
 function scorecardUrlFromLiveUrl(url) {
   return String(url || "").replace("/live-cricket-scores/", "/live-cricket-scorecard/");
 }
@@ -577,9 +601,13 @@ async function fetchMatchDetail(url, teams, stateHint) {
 
     const structuredText = extractStructuredText($);
     const bodyText = clean($("body").text());
-    const combinedText = clean(`${structuredText} ${bodyText}`);
+    const metaDescription = clean($("meta[name='description']").attr("content"));
+    const combinedText = clean(`${metaDescription} ${structuredText} ${bodyText}`);
 
-    let scores = extractScoresFromText(combinedText, teams);
+    let scores = chooseBestScores([
+      ...extractCompositeScores(combinedText, teams),
+      ...extractScoresFromText(combinedText, teams)
+    ]);
 
     if (stateHint === "Finished" || combinedText.toLowerCase().includes("won")) {
       const finishedScores = await fetchFinishedScorecardScores(url, teams);

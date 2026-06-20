@@ -233,6 +233,7 @@ function changeCompetition(value){
   activeFilter="All";
   $("competitionSubtitle").textContent=`${competitionLabel()} · Live data`;
   renderPage();
+  loadMatches();
 }
 
 function getDisplayMatches(){
@@ -838,7 +839,7 @@ async function loadMatches(){
     const json=await res.json();
 
     allMatches=json.data||[];
-    if(allMatches.length)localStorage.setItem("womensWorldCupMatches",JSON.stringify(allMatches));
+    if(allMatches.length)localStorage.setItem("cricketDashboardMatchesV2",JSON.stringify(allMatches));
 
     const live=getLiveMatch();
     const selectedStillExists=getTournamentMatches().some(m=>String(m.id)===String(selectedMatchId));
@@ -879,7 +880,7 @@ try{
   }
   $("competitionSelect").value=activeCompetition;
   $("competitionSubtitle").textContent=`${competitionLabel()} · Live data`;
-  const saved=JSON.parse(localStorage.getItem("womensWorldCupMatches")||"[]");
+  const saved=JSON.parse(localStorage.getItem("cricketDashboardMatchesV2")||"[]");
   if(Array.isArray(saved)&&saved.length){
     allMatches=saved;
     renderPage();
