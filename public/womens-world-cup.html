@@ -366,7 +366,7 @@ function displayOvers(match,row){return row?.overs || ""}
 function currentScore(match){
   const s=Array.isArray(match?.scores)?match.scores:[];
   if(!s.length)return null;
-  if(isTest(match))return s.find(row=>String(row?.score||"").includes("&"))||s.find(row=>row?.overs)||s[0];
+  if(isTest(match))return s.find(row=>row?.isCurrent)||s.find(row=>row?.overs)||s.find(row=>String(row?.score||"").includes("&"))||s[0];
   if(s.length>=2 && stateOf(match)==="Live"){
     const withOvers=s.filter(row=>Number.isFinite(oversDec(row?.overs)));
     if(withOvers.length>=2)return [...withOvers].sort((a,b)=>oversDec(a.overs)-oversDec(b.overs))[0];
@@ -393,7 +393,7 @@ function currentRR(match){
   if(st==="Finished")return"Match Finished";
   const row=currentScore(match);
   const calculated=calcRR(currentInningsScore(row),displayOvers(match,row));
-  if(isTest(match))return calculated||row?.rr||"Awaiting overs data";
+  if(isTest(match))return String(match?.liveDetails?.rr||"").trim()||calculated||row?.rr||"Awaiting overs data";
   return calculated || row?.rr || String(match?.liveDetails?.rr||"").trim() || "Innings not started";
 }
 
@@ -403,7 +403,13 @@ function testProgress(match){
   const inningsScore=currentInningsScore(row);
   const wickets=parseInt(inningsScore.match(/\/(\d+)/)?.[1]||"0",10);
   const overs=displayOvers(match,row)||"--";
-  return `${overs} ov bowled · ${Math.max(10-wickets,0)} wickets left`;
+  const wicketsLeft=Number.isFinite(Number(match?.liveDetails?.wicketsLeft))
+    ? Number(match.liveDetails.wicketsLeft)
+    : Math.max(10-wickets,0);
+  const oversLeft=String(match?.liveDetails?.oversLeftToday||"").trim();
+  return oversLeft
+    ? `${oversLeft} overs left today · ${wicketsLeft} wickets left`
+    : `${overs} ov bowled · ${wicketsLeft} wickets left`;
 }
 
 
@@ -481,7 +487,7 @@ function phase(match){
     return ["Innings Break","orange"];
   }
 
-  if(activeCompetition === "England vs New Zealand")return["Test Match","blue"];
+  if(activeCompetition === "England vs New Zealand")return[match?.liveDetails?.daySession||"Test Match","blue"];
 
   const o=oversDec(displayOvers(match,currentScore(match)));
   if(!Number.isFinite(o))return["Live","blue"];
@@ -505,7 +511,10 @@ function momentum(match){
   if(isInningsBreak(match)){
     return ["Waiting for chase","blue"];
   }
-  if(activeCompetition === "England vs New Zealand")return["Match in progress","blue"];
+  if(activeCompetition === "England vs New Zealand"){
+    const batting=match?.liveDetails?.battingTeam;
+    return[batting?`${batting} batting`:"Match in progress","blue"];
+  }
 
   const c=parseFloat(currentRR(match)),r=parseFloat(requiredRR(match));
 
@@ -541,8 +550,13 @@ function scoreHTML(match){
       return `<div class="score-row ${cls}"><b>${short}</b><span>Match not started</span><small>Pre-match</small></div>`;
     }
 
+    const scoreNote=isTest(match)
+      ? row?.isCurrent
+        ? `${displayOvers(match,row)||"--"} ov · Batting`
+        : "Innings complete"
+      : `${displayOvers(match,row)||"--"} ov`;
     return row
-      ? `<div class="score-row ${cls}"><b>${short}</b><span>${row.score}</span><small>${displayOvers(match,row)||"--"} ov</small></div>`
+      ? `<div class="score-row ${cls}"><b>${short}</b><span>${row.score}</span><small>${scoreNote}</small></div>`
       : `<div class="score-row ${cls}"><b>${short}</b><span>Innings not started</span><small>Yet to bat</small></div>`;
   }).join("");
 }

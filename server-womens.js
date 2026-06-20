@@ -167,6 +167,64 @@ function deriveTestLeadStatus(scores) {
   return lead > 0 ? `${totals[0].team} lead by ${lead}` : "Scores level";
 }
 
+function extractJsonObjectAfter(source, marker, fromIndex = 0) {
+  const markerIndex = source.indexOf(marker, Math.max(0, fromIndex));
+  if (markerIndex < 0) return null;
+  const start = source.indexOf("{", markerIndex + marker.length);
+  if (start < 0) return null;
+  let depth = 0, quoted = false, escaped = false;
+  for (let index = start; index < source.length; index += 1) {
+    const char = source[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') quoted = false;
+      continue;
+    }
+    if (char === '"') quoted = true;
+    else if (char === "{") depth += 1;
+    else if (char === "}" && --depth === 0) {
+      try { return JSON.parse(source.slice(start, index + 1)); }
+      catch { return null; }
+    }
+  }
+  return null;
+}
+
+function extractEmbeddedMatchData(html, url) {
+  const id = String(getMatchId(url));
+  const source = String(html).replace(/\\"/g, '"');
+  const idIndex = source.indexOf(`"matchId":${id}`);
+  if (idIndex < 0) return null;
+  const infoMarker = source.lastIndexOf('"matchInfo":', idIndex);
+  const matchInfo = extractJsonObjectAfter(source, '"matchInfo":', infoMarker);
+  const matchScore = extractJsonObjectAfter(source, '"matchScore":', idIndex);
+  return matchInfo && matchScore ? { matchInfo, matchScore } : null;
+}
+
+function structuredTestScores(embedded) {
+  const { matchInfo, matchScore } = embedded;
+  return [
+    [matchInfo.team1, matchScore.team1Score],
+    [matchInfo.team2, matchScore.team2Score]
+  ].map(([team, score]) => {
+    const innings = [score?.inngs1, score?.inngs2].filter(Boolean);
+    if (!innings.length) return null;
+    const parts = innings.map(item => `${item.runs}${item.wickets < 10 ? `/${item.wickets || 0}` : ""}`);
+    const latest = innings[innings.length - 1];
+    const isCurrent = team.teamId === matchInfo.currBatTeamId;
+    return {
+      team: team.teamSName,
+      score: parts.join(" & "),
+      overs: isCurrent ? String(latest.overs ?? "") : "",
+      rr: isCurrent ? calculateRR(String(latest.runs), String(latest.overs ?? "")) : "",
+      isCurrent,
+      innings,
+      raw: parts.join(" & ")
+    };
+  }).filter(Boolean);
+}
+
 
 
 function isValidScoreCandidate(runs, wickets, overs) {
@@ -649,6 +707,8 @@ async function fetchMatchDetail(url, teams, stateHint) {
     const bodyText = clean($("body").text());
     const metaDescription = clean($("meta[name='description']").attr("content"));
     const combinedText = clean(`${metaDescription} ${structuredText} ${bodyText}`);
+    const embedded = extractEmbeddedMatchData(html, url);
+    const structuredTest = embedded?.matchInfo?.matchFormat === "TEST";
 
     const regularScores = extractScoresFromText(combinedText, teams);
     const compositeScores = /(?:^|[-/])test(?:[-/]|$)/i.test(url)
@@ -665,6 +725,7 @@ async function fetchMatchDetail(url, teams, stateHint) {
       ...compositeScores,
       ...regularScores
     ]);
+    if (structuredTest) scores = structuredTestScores(embedded);
 
     if (stateHint === "Finished" || combinedText.toLowerCase().includes("won")) {
       const finishedScores = await fetchFinishedScorecardScores(url, teams);
@@ -675,6 +736,16 @@ async function fetchMatchDetail(url, teams, stateHint) {
     }
 
     const liveDetails = parseLiveDetails(combinedText, scores, teams);
+    if (structuredTest) {
+      const current = scores.find(score => score.isCurrent);
+      const wickets = parseInt(current?.score?.split("&").pop().match(/\/(\d+)/)?.[1] || "0", 10);
+      liveDetails.rr = bodyText.match(/\bCRR:?\s*([\d.]+)/i)?.[1] || current?.rr || "";
+      liveDetails.battingTeam = current?.team || "";
+      liveDetails.wicketsLeft = Math.max(10 - wickets, 0);
+      liveDetails.oversLeftToday = bodyText.match(/Ovs Left:\s*([\d.]+)/i)?.[1] || "";
+      liveDetails.daySession = clean(embedded.matchInfo.status).split(" - ")[0] || "";
+      liveDetails.venue = [embedded.matchInfo.venueInfo?.ground, embedded.matchInfo.venueInfo?.city].filter(Boolean).join(", ");
+    }
     const result = extractOwnResult(combinedText, teams);
 
     return {
@@ -683,9 +754,12 @@ async function fetchMatchDetail(url, teams, stateHint) {
       scores,
       liveDetails,
       result,
-      startISO: schemaStart && Number.isFinite(Date.parse(schemaStart))
-        ? new Date(schemaStart).toISOString()
-        : ""
+      structuredStatus: structuredTest ? clean(embedded.matchInfo.status) : "",
+      startISO: structuredTest && Number.isFinite(Number(embedded.matchInfo.startDate))
+        ? new Date(Number(embedded.matchInfo.startDate)).toISOString()
+        : schemaStart && Number.isFinite(Date.parse(schemaStart))
+          ? new Date(schemaStart).toISOString()
+          : ""
     };
   } catch {
     return {
@@ -694,6 +768,7 @@ async function fetchMatchDetail(url, teams, stateHint) {
       scores: [],
       liveDetails: {},
       result: "",
+      structuredStatus: "",
       startISO: ""
     };
   }
@@ -763,7 +838,7 @@ async function scrapeWomensT20WorldCup() {
 
     const detail = await fetchMatchDetail(item.url, item.teams, preliminaryState);
 
-    let status = detail.result || extractStatus(item.titleText, detail.detailText);
+    let status = detail.result || detail.structuredStatus || extractStatus(item.titleText, detail.detailText);
     let state = classifyState(status);
     if (state === "Unknown" && item.stateHint) state = item.stateHint;
     const startISO = detail.startISO || extractStartISO(`${item.titleText} ${detail.detailText} ${detail.rawText}`);
@@ -782,7 +857,7 @@ async function scrapeWomensT20WorldCup() {
     if (state === "Live" && item.category === WOMENS_CATEGORY) {
       status = deriveT20ChaseStatus(finalScores) || status;
     }
-    if (state === "Live" && item.category === ENG_NZ_CATEGORY) {
+    if (state === "Live" && item.category === ENG_NZ_CATEGORY && !detail.structuredStatus) {
       status = deriveTestLeadStatus(finalScores) || status;
     }
 
