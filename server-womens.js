@@ -616,12 +616,6 @@ function parseLiveDetails(text, scores, teams = []) {
     details.simpleSituation = details.chase;
   }
 
-  const shortChaseMatch = source.match(/Need\s+(\d+)\s+off\s+(\d+)b/i);
-  if (shortChaseMatch) {
-    details.chase = `Need ${shortChaseMatch[1]} off ${shortChaseMatch[2]}b`;
-    details.simpleSituation = details.chase;
-  }
-
   if (scores.length) {
     const latestScore = scores[scores.length - 1];
     details.rr = latestScore.rr || calculateRR(latestScore.score, latestScore.overs);
@@ -653,8 +647,11 @@ async function fetchMatchDetail(url, teams, stateHint) {
     const metaDescription = clean($("meta[name='description']").attr("content"));
     const combinedText = clean(`${metaDescription} ${structuredText} ${bodyText}`);
 
+    const compositeScores = /(?:^|[-/])test(?:[-/]|$)/i.test(url)
+      ? extractCompositeScores(combinedText, teams)
+      : [];
     let scores = chooseBestScores([
-      ...extractCompositeScores(combinedText, teams),
+      ...compositeScores,
       ...extractScoresFromText(combinedText, teams)
     ]);
 
