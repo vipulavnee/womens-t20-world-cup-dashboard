@@ -142,6 +142,7 @@ let activeCompetition = localStorage.getItem("activeCompetition") || TOURNAMENT_
 const $ = id => document.getElementById(id);
 const stateOf = m => String(m?.state || "").trim();
 const isODI = m => /\bodi\b/i.test(`${m?.name||""} ${m?.url||""}`);
+const isTest = m => /\btest\b/i.test(`${m?.name||""} ${m?.url||""}`);
 const inningsOvers = m => isODI(m) ? 50 : 20;
 const inningsBalls = m => inningsOvers(m) * 6;
 
@@ -365,8 +366,13 @@ function displayOvers(match,row){return row?.overs || ""}
 function currentScore(match){
   const s=Array.isArray(match?.scores)?match.scores:[];
   if(!s.length)return null;
+  if(isTest(match))return s.find(row=>String(row?.score||"").includes("&"))||s.find(row=>row?.overs)||s[0];
   if(s.length>=2)return s[s.length-1];
   return s[0];
+}
+
+function currentInningsScore(row){
+  return String(row?.score||"").split("&").pop().trim();
 }
 
 function innings(match){
@@ -381,13 +387,19 @@ function currentRR(match){
   const st=stateOf(match);
   if(st==="Upcoming")return"Pre-match";
   if(st==="Finished")return"Match Finished";
-  if(activeCompetition === "England vs New Zealand")return"Not applicable";
-
-  const apiRR=String(match?.liveDetails?.rr||"").trim();
-  if(apiRR)return apiRR;
-
   const row=currentScore(match);
-  return row?.rr || calcRR(row?.score,displayOvers(match,row)) || "Innings not Started";
+  const calculated=calcRR(currentInningsScore(row),displayOvers(match,row));
+  if(isTest(match))return calculated||row?.rr||"Awaiting overs data";
+  return calculated || row?.rr || String(match?.liveDetails?.rr||"").trim() || "Innings not started";
+}
+
+function testProgress(match){
+  const row=currentScore(match);
+  if(!row)return"Awaiting innings data";
+  const inningsScore=currentInningsScore(row);
+  const wickets=parseInt(inningsScore.match(/\/(\d+)/)?.[1]||"0",10);
+  const overs=displayOvers(match,row)||"--";
+  return `${overs} ov bowled · ${Math.max(10-wickets,0)} wickets left`;
 }
 
 
@@ -401,13 +413,11 @@ function oversToBalls(oversText) {
 function requiredRR(match){
   const st = stateOf(match);
   if(st === "Upcoming") return "Pre-match";
-
   if(st === "Finished") return "Match Finished";
-  if(activeCompetition === "England vs New Zealand") return "Not applicable";
+  if(isTest(match)) return testProgress(match);
 
   const status = String(match?.status || "").trim();
   const lower = status.toLowerCase();
-  const ld = match?.liveDetails || {};
 
   if(lower.includes("innings break")){
     return "Chase not started";
@@ -416,38 +426,24 @@ function requiredRR(match){
   const scores = Array.isArray(match?.scores) ? match.scores : [];
   if(scores.length < 2) return "Second innings yet to start";
 
-  // 1. Use liveDetails.requiredRR if clean
-  const apiRR = String(ld.requiredRR || "").trim();
-  if(apiRR && apiRR !== "First innings"){
-    return apiRR;
+  let m=status.match(/need\s+(\d+)\s+(?:runs?\s+)?(?:off|in)\s+(\d+)\s*b/i);
+  if(m){
+    const runsNeeded=parseInt(m[1],10),ballsLeft=parseInt(m[2],10);
+    return ballsLeft>0?((runsNeeded*6)/ballsLeft).toFixed(2):"--";
   }
 
-  // 2. Use liveDetails.chase / simpleSituation only if status is not contradictory
-  const liveText = String(ld.chase || ld.simpleSituation || "").trim();
-
-  let m = liveText.match(/need\s+(\d+)\s+(?:runs?\s+)?(?:off|in)\s+(\d+)\s*b/i);
-  if(m && !lower.includes("to win")){
-    const runsNeeded = parseInt(m[1], 10);
-    const ballsLeft = parseInt(m[2], 10);
-    return ((runsNeeded * 6) / ballsLeft).toFixed(2);
-  }
-
-// 3. If status says "Need X to win", use current batting innings overs
-m = status.match(/need\s+(\d+)\s+to\s+win/i);
-
-if (m) {
-  const runsNeeded = parseInt(m[1], 10);
-
-  // Current batting/chasing team is usually first score in live chase
-  const chasing = scores[0];
-
-  const ballsBowled = oversToBalls(displayOvers(match, chasing));
+  const chasing=currentScore(match);
+  const defending=scores.find(row=>row!==chasing);
+  const chaseRuns=runs(chasing?.score),defendRuns=runs(defending?.score);
+  m=status.match(/need\s+(\d+)\s+to\s+win/i);
+  const runsNeeded=m?parseInt(m[1],10):
+    Number.isFinite(chaseRuns)&&Number.isFinite(defendRuns)?Math.max(defendRuns+1-chaseRuns,0):NaN;
+  const ballsBowled = oversToBalls(displayOvers(match,chasing));
   const ballsLeft = Math.max(inningsBalls(match) - ballsBowled, 0);
 
-  if (ballsLeft > 0) {
-    return ((runsNeeded * 6) / ballsLeft).toFixed(2);
+  if(Number.isFinite(runsNeeded)&&runsNeeded>0&&ballsLeft>0){
+    return ((runsNeeded*6)/ballsLeft).toFixed(2);
   }
-}
 
   return "Not available";
 }
@@ -461,13 +457,9 @@ function recent(match){
   if(st==="Finished")return["Match Finished","blue"];
   if(st==="Upcoming")return["Waiting","blue"];
 
-  const lastFive=String(match?.liveDetails?.lastFive||"").trim();
-
   if(isInningsBreak(match)){
-    return [lastFive ? `1st innings done · Last 5: ${lastFive}` : "1st innings done", "green"];
+    return ["1st innings done", "green"];
   }
-
-  if(lastFive)return[lastFive,"green"];
 
   const row=currentScore(match),over=displayOvers(match,row),rr=currentRR(match);
   if(over && rr && rr!=="--")return[`${over} ov · RR ${rr}`,"blue"];
@@ -573,6 +565,7 @@ function matchSituationText(match){
 
   if(st === "Upcoming") return "Pre-match";
   if(st === "Finished") return match?.status || "Match finished";
+  if(isInningsBreak(match)) return "Innings break";
 
   if(innings(match) <= 1){
     const row = currentScore(match);
@@ -592,6 +585,7 @@ function stageLabelHtml(m){
 
 function renderHero(match){
 const no=getMatchNumber(match),st=stateOf(match),heading=st==="Upcoming"?"PRE-MATCH":st==="Finished"?"FINAL SCORES":"LIVE SCORES";
+const testMatch=isTest(match),rrLabel=testMatch?"Innings RR":"Current RR",thirdLabel=testMatch?"Overs Bowled / Wickets Left":"Required RR";
 
   $("heroMount").innerHTML=`<div class="hero"><div class="hero-grid">
     <div class="hero-left">
@@ -605,8 +599,8 @@ const no=getMatchNumber(match),st=stateOf(match),heading=st==="Upcoming"?"PRE-MA
       <div class="scoreboard">${scoreHTML(match)}</div>
       <div class="stats">
 <div class="stat"><small>Situation</small><b>${matchSituationText(match)}</b></div>
-        <div class="stat"><small>Current RR</small><b>${currentRR(match)}</b></div>
-        <div class="stat"><small>Required RR</small><b>${requiredRR(match)}</b></div>
+        <div class="stat"><small>${rrLabel}</small><b>${currentRR(match)}</b></div>
+        <div class="stat"><small>${thirdLabel}</small><b>${requiredRR(match)}</b></div>
       </div>
     </div>
   </div></div>`;
@@ -789,7 +783,7 @@ function winPredictor(match){
 function renderCards(match){
 const r=recent(match),p=phase(match),m=momentum(match),w=winPredictor(match);
   $("commandMount").innerHTML=`<div class="cards">
-    <div class="card ${r[1]}"><small>Momentum/Last 5 Overs: </small><b>${r[0]}</b></div>
+    <div class="card ${r[1]}"><small>Current Pace: </small><b>${r[0]}</b></div>
     <div class="card ${p[1]}"><small>Match Phase: </small><b>${p[0]}</b></div>
     <div class="card ${m[1]}"><small>Currently ahead: </small><b>${m[0]}</b></div>
 <div class="card ${w[1]}"><small>Win Predictor: </small><b>${w[0]}</b></div>

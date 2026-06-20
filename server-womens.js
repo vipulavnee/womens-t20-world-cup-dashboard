@@ -647,12 +647,20 @@ async function fetchMatchDetail(url, teams, stateHint) {
     const metaDescription = clean($("meta[name='description']").attr("content"));
     const combinedText = clean(`${metaDescription} ${structuredText} ${bodyText}`);
 
+    const regularScores = extractScoresFromText(combinedText, teams);
     const compositeScores = /(?:^|[-/])test(?:[-/]|$)/i.test(url)
       ? extractCompositeScores(combinedText, teams)
       : [];
+    for (const composite of compositeScores) {
+      const current = regularScores.find(score => score.team === composite.team && score.overs);
+      if (!current) continue;
+      composite.overs = current.overs;
+      const currentInnings = String(composite.score).split("&").pop().trim();
+      composite.rr = calculateRR(currentInnings, current.overs);
+    }
     let scores = chooseBestScores([
       ...compositeScores,
-      ...extractScoresFromText(combinedText, teams)
+      ...regularScores
     ]);
 
     if (stateHint === "Finished" || combinedText.toLowerCase().includes("won")) {
