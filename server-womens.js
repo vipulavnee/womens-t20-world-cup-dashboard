@@ -115,7 +115,56 @@ function inferCompletedResult(teams, scores) {
 
   return likelyChase
     ? `${winner.team} won by ${Math.max(10 - winner.wickets, 0)} wickets`
-    : `${winner.team} won by ${winner.runs - loser.runs} runs`;
+    : `${winner.team} won by ${winner.runs - loser.runs} ${winner.runs - loser.runs === 1 ? "run" : "runs"}`;
+}
+
+function extractOwnResult(text, teams) {
+  const source = clean(text);
+  for (const team of teams) {
+    const escaped = team.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = source.match(
+      new RegExp(`${escaped}\\s+won\\s+by\\s+(\\d+)\\s+(runs?|wkts?|wickets?)`, "i")
+    );
+    if (match) {
+      const margin = Number(match[1]);
+      const unit = /wkt|wicket/i.test(match[2])
+        ? margin === 1 ? "wicket" : "wickets"
+        : margin === 1 ? "run" : "runs";
+      return `${team} won by ${margin} ${unit}`;
+    }
+  }
+  return "";
+}
+
+function deriveT20ChaseStatus(scores) {
+  if (!Array.isArray(scores) || scores.length < 2) return "";
+  const rows = scores.map(score => ({
+    score,
+    runs: parseInt(String(score.score).match(/\d+/)?.[0] || "NaN", 10),
+    balls: (() => {
+      const [overs, balls = "0"] = String(score.overs || "").split(".");
+      return Number(overs) * 6 + Number(balls);
+    })()
+  }));
+  const first = rows.find(row => row.balls === 120);
+  const chase = rows.find(row => row !== first && row.balls < 120);
+  if (!first || !chase || !Number.isFinite(first.runs) || !Number.isFinite(chase.runs)) return "";
+  const needed = Math.max(first.runs + 1 - chase.runs, 0);
+  const ballsLeft = Math.max(120 - chase.balls, 0);
+  return needed > 0 ? `Need ${needed} off ${ballsLeft}b` : `${chase.score.team} won`;
+}
+
+function deriveTestLeadStatus(scores) {
+  if (!Array.isArray(scores) || scores.length < 2) return "";
+  const totals = scores.map(score => ({
+    team: score.team,
+    total: String(score.score || "").split("&")
+      .map(part => parseInt(part.match(/\d+/)?.[0] || "0", 10))
+      .reduce((sum, runs) => sum + runs, 0)
+  }));
+  totals.sort((a, b) => b.total - a.total);
+  const lead = totals[0].total - totals[1].total;
+  return lead > 0 ? `${totals[0].team} lead by ${lead}` : "Scores level";
 }
 
 
@@ -618,12 +667,14 @@ async function fetchMatchDetail(url, teams, stateHint) {
     }
 
     const liveDetails = parseLiveDetails(combinedText, scores, teams);
+    const result = extractOwnResult(combinedText, teams);
 
     return {
       detailText: structuredText,
       rawText: combinedText.slice(0, 2500),
       scores,
       liveDetails,
+      result,
       startISO: schemaStart && Number.isFinite(Date.parse(schemaStart))
         ? new Date(schemaStart).toISOString()
         : ""
@@ -634,6 +685,7 @@ async function fetchMatchDetail(url, teams, stateHint) {
       rawText: "",
       scores: [],
       liveDetails: {},
+      result: "",
       startISO: ""
     };
   }
@@ -703,7 +755,7 @@ async function scrapeWomensT20WorldCup() {
 
     const detail = await fetchMatchDetail(item.url, item.teams, preliminaryState);
 
-    let status = extractStatus(item.titleText, detail.detailText);
+    let status = detail.result || extractStatus(item.titleText, detail.detailText);
     let state = classifyState(status);
     if (state === "Unknown" && item.stateHint) state = item.stateHint;
     const startISO = detail.startISO || extractStartISO(`${item.titleText} ${detail.detailText} ${detail.rawText}`);
@@ -717,6 +769,13 @@ async function scrapeWomensT20WorldCup() {
 
     if (state === "Finished" && !/(?:won|tied|no result|abandoned)/i.test(status)) {
       status = inferCompletedResult(item.teams, finalScores);
+    }
+
+    if (state === "Live" && item.category === WOMENS_CATEGORY) {
+      status = deriveT20ChaseStatus(finalScores) || status;
+    }
+    if (state === "Live" && item.category === ENG_NZ_CATEGORY) {
+      status = deriveTestLeadStatus(finalScores) || status;
     }
 
     const matchScore =

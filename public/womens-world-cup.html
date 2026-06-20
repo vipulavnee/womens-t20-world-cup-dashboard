@@ -141,6 +141,9 @@ let activeCompetition = localStorage.getItem("activeCompetition") || TOURNAMENT_
 /* Retained only as an inert historical reference; live tournament data comes from the server. */
 const $ = id => document.getElementById(id);
 const stateOf = m => String(m?.state || "").trim();
+const isODI = m => /\bodi\b/i.test(`${m?.name||""} ${m?.url||""}`);
+const inningsOvers = m => isODI(m) ? 50 : 20;
+const inningsBalls = m => inningsOvers(m) * 6;
 
 const TEAM_SHORT = {
   "Australia Women":"AUS-W","Bangladesh Women":"BAN-W","England Women":"ENG-W",
@@ -362,7 +365,8 @@ function displayOvers(match,row){return row?.overs || ""}
 function currentScore(match){
   const s=Array.isArray(match?.scores)?match.scores:[];
   if(!s.length)return null;
-  return s.find(x=>Number.isFinite(oversDec(x?.overs))&&oversDec(x?.overs)<20)||s[s.length-1];
+  if(s.length>=2)return s[s.length-1];
+  return s[0];
 }
 
 function innings(match){
@@ -377,6 +381,7 @@ function currentRR(match){
   const st=stateOf(match);
   if(st==="Upcoming")return"Pre-match";
   if(st==="Finished")return"Match Finished";
+  if(activeCompetition === "England vs New Zealand")return"Not applicable";
 
   const apiRR=String(match?.liveDetails?.rr||"").trim();
   if(apiRR)return apiRR;
@@ -437,7 +442,7 @@ if (m) {
   const chasing = scores[0];
 
   const ballsBowled = oversToBalls(displayOvers(match, chasing));
-  const ballsLeft = Math.max(120 - ballsBowled, 0);
+  const ballsLeft = Math.max(inningsBalls(match) - ballsBowled, 0);
 
   if (ballsLeft > 0) {
     return ((runsNeeded * 6) / ballsLeft).toFixed(2);
@@ -484,6 +489,11 @@ function phase(match){
 
   const o=oversDec(displayOvers(match,currentScore(match)));
   if(!Number.isFinite(o))return["Live","blue"];
+  if(isODI(match)){
+    if(o<10)return["ODI Powerplay","orange"];
+    if(o<40)return["Middle Overs","blue"];
+    return["Final 10 Overs","red"];
+  }
   if(o<6)return["Powerplay","orange"];
   if(o<15)return["Middle Overs","blue"];
   return["Death Overs","red"];
@@ -499,6 +509,7 @@ function momentum(match){
   if(isInningsBreak(match)){
     return ["Waiting for chase","blue"];
   }
+  if(activeCompetition === "England vs New Zealand")return["Match in progress","blue"];
 
   const c=parseFloat(currentRR(match)),r=parseFloat(requiredRR(match));
 
@@ -634,24 +645,37 @@ function winPredictor(match){
       return ["Building...", "blue"];
     }
 
-    const rawProjected = (r / o) * 20;
-    const earlyOversWeight = o < 5 ? Math.max(0.2, o / 5) : 1;
-    const projected = 155 + (rawProjected - 155) * earlyOversWeight;
+    const maxOvers=inningsOvers(match);
+    const rawProjected = (r / o) * maxOvers;
+    const earlyWindow=isODI(match)?10:5;
+    const baseline=isODI(match)?280:155;
+    const earlyOversWeight = o < earlyWindow ? Math.max(0.2, o / earlyWindow) : 1;
+    const projected = baseline + (rawProjected - baseline) * earlyOversWeight;
 
     let battingPct = 50;
 
-    if(projected >= 240) battingPct = 80;
-    else if(projected >= 220) battingPct = 72;
-    else if(projected >= 200) battingPct = 64;
-    else if(projected >= 180) battingPct = 58;
-    else if(projected >= 160) battingPct = 48;
-    else if(projected >= 140) battingPct = 40;
-    else battingPct = 32;
+    if(isODI(match)){
+      if(projected>=360)battingPct=78;
+      else if(projected>=330)battingPct=70;
+      else if(projected>=300)battingPct=61;
+      else if(projected>=270)battingPct=52;
+      else if(projected>=240)battingPct=42;
+      else battingPct=32;
+    }else{
+      if(projected >= 240) battingPct = 80;
+      else if(projected >= 220) battingPct = 72;
+      else if(projected >= 200) battingPct = 64;
+      else if(projected >= 180) battingPct = 58;
+      else if(projected >= 160) battingPct = 48;
+      else if(projected >= 140) battingPct = 40;
+      else battingPct = 32;
+    }
 
     battingPct -= Math.max(0, w - 1) * 2.5;
 
-    if(o >= 15 && w <= 4 && projected >= 190) battingPct += 5;
-    if(o >= 15 && w >= 9) battingPct -= 6;
+    if(!isODI(match) && o >= 15 && w <= 4 && projected >= 190) battingPct += 5;
+    if(!isODI(match) && o >= 15 && w >= 9) battingPct -= 6;
+    if(isODI(match) && o >= 40 && w <= 6 && projected >= 320) battingPct += 5;
 
     battingPct = Math.max(10, Math.min(82, Math.round(battingPct)));
 
@@ -674,7 +698,13 @@ function winPredictor(match){
   // Detect chasing innings safely.
   // In live chase, current/chasing innings usually has overs below 20.
   // Completed first innings usually has 20 overs.
-  if(Number.isFinite(oversA) && Number.isFinite(oversB)){
+  if(isODI(match)){
+    const runsA=runs(scoreA?.score),runsB=runs(scoreB?.score);
+    if(Number.isFinite(runsA)&&Number.isFinite(runsB)){
+      defend=runsA>=runsB?scoreA:scoreB;
+      chase=defend===scoreA?scoreB:scoreA;
+    }
+  } else if(Number.isFinite(oversA) && Number.isFinite(oversB)){
     if(oversA >= 20 && oversB < 20){
       defend = scoreA;
       chase = scoreB;
@@ -703,7 +733,7 @@ function winPredictor(match){
   const target = defendRuns + 1;
   const runsNeeded = Math.max(target - chaseRuns, 0);
   const ballsBowled = oversToBalls(chase?.overs);
-  const ballsLeft = Math.max(120 - ballsBowled, 0);
+  const ballsLeft = Math.max(inningsBalls(match) - ballsBowled, 0);
   const wicketsLeft = Math.max(10 - wicketsLost, 0);
 
   if(runsNeeded <= 0){
@@ -720,7 +750,8 @@ function winPredictor(match){
   let chasePct = 50;
 
   // Run rate is deliberately dampened during the volatile first five overs.
-  const earlyChaseWeight = chaseOvers < 5 ? Math.max(0.2, chaseOvers / 5) : 1;
+  const earlyChaseWindow=isODI(match)?10:5;
+  const earlyChaseWeight = chaseOvers < earlyChaseWindow ? Math.max(0.2, chaseOvers / earlyChaseWindow) : 1;
   chasePct += (crr - rrr) * 10 * earlyChaseWeight;
 
   // Wickets remaining
