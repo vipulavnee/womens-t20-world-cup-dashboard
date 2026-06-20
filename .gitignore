@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+.agents/
+.codex/
+/index.html
+/server.js
+/start-womens-dashboard.bat
