@@ -126,6 +126,7 @@ let allMatches = [];
 let activeFilter = "All";
 let selectedMatchId = "";
 let userSelected = false;
+let matchRequestInFlight = false;
 const TOURNAMENT_CATEGORY = "Women's T20 World Cup";
 
 /* Retained only as an inert historical reference; live tournament data comes from the server. */
@@ -787,17 +788,27 @@ function renderPage(){
 }
 
 async function loadMatches(){
+  if(matchRequestInFlight)return;
+  matchRequestInFlight=true;
   const s=$("apiStatus");
-  s.textContent="● Loading";
-  s.className="status warn";
+  if(!allMatches.length){
+    s.textContent="● WAKING UP";
+    s.className="status warn";
+  }
 
   try{
     const apiBase = location.protocol === "file:" ? "http://localhost:3001" : "";
-    const res=await fetch(apiBase+"/api/womens-t20-world-cup?t="+Date.now(),{cache:"no-store"});
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),25000);
+    const res=await fetch(apiBase+"/api/womens-t20-world-cup?t="+Date.now(),{
+      cache:"no-store",signal:controller.signal
+    });
+    clearTimeout(timeout);
     if(!res.ok) throw new Error(`Match service returned ${res.status}`);
     const json=await res.json();
 
     allMatches=json.data||[];
+    if(allMatches.length)localStorage.setItem("womensWorldCupMatches",JSON.stringify(allMatches));
 
     const live=getLiveMatch();
     const selectedStillExists=getTournamentMatches().some(m=>String(m.id)===String(selectedMatchId));
@@ -817,16 +828,32 @@ async function loadMatches(){
 
     renderPage();
   }catch(e){
-    s.textContent="● ERROR";
-    s.className="status bad";
-    $("mainMount").innerHTML=`<div class="panel"><div class="section"><b>Women's match service is not running.</b><br>Start <code>server-womens.js</code>, then refresh this page.</div></div>`;
+    if(allMatches.length){
+      s.textContent="● RECONNECTING";
+      s.className="status warn";
+      renderPage();
+    }else{
+      s.textContent="● RETRYING";
+      s.className="status warn";
+      $("mainMount").innerHTML=`<div class="panel"><div class="section"><b>Live service is waking up.</b><br>The dashboard will retry automatically.</div></div>`;
+    }
     console.error(e);
+  }finally{
+    matchRequestInFlight=false;
   }
 }
 
+try{
+  const saved=JSON.parse(localStorage.getItem("womensWorldCupMatches")||"[]");
+  if(Array.isArray(saved)&&saved.length){
+    allMatches=saved;
+    renderPage();
+  }
+}catch{}
+
 loadMatches();
 setInterval(renderPage,1000);
-setInterval(loadMatches,5000);
+setInterval(loadMatches,10000);
 </script>
 </body>
 </html>

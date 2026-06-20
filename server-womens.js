@@ -166,7 +166,7 @@ async function fetchHtml(url) {
   const finalUrl = `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
 
   const response = await axios.get(finalUrl, {
-    timeout: 18000,
+    timeout: 8000,
     headers: {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
@@ -627,9 +627,15 @@ async function scrapeWomensT20WorldCupBase() {
 
 async function scrapeWomensT20WorldCup() {
   const baseMatches = await scrapeWomensT20WorldCupBase();
-  const matches = [];
+  const candidates = [
+    ...baseMatches.filter(item => !item.stateHint).slice(0, 3),
+    ...baseMatches.filter(item => item.stateHint === "Finished").slice(0, 2),
+    ...baseMatches.filter(item => item.stateHint === "Upcoming").slice(0, 2)
+  ].filter((item, index, list) =>
+    list.findIndex(other => String(other.id) === String(item.id)) === index
+  );
 
-  for (const item of baseMatches) {
+  const matches = await Promise.all(candidates.map(async item => {
     const preliminaryStatus = extractStatus(item.titleText, "");
     const preliminaryState = classifyState(preliminaryStatus) === "Unknown"
       ? item.stateHint || "Unknown"
@@ -660,7 +666,7 @@ async function scrapeWomensT20WorldCup() {
             .join(" | ")
         : "Score not available";
 
-    matches.push({
+    return {
       id: item.id,
       name: getMatchName(item.teams, item.slug),
       teams: item.teams,
@@ -675,8 +681,8 @@ async function scrapeWomensT20WorldCup() {
       liveDetails: detail.liveDetails,
       liveScorecard: null,
       rawText: detail.rawText
-    });
-  }
+    };
+  }));
 
   return matches.sort((a, b) => {
     const rank = { Live: 1, Upcoming: 2, Finished: 3, Unknown: 4 };
@@ -701,12 +707,12 @@ async function getCachedMatches() {
       });
   }
 
-  try {
-    return { data: await matchFetchPromise, cached: false };
-  } catch (error) {
-    if (matchCache.data) return { data: matchCache.data, cached: true, stale: true };
-    throw error;
+  if (matchCache.data) {
+    matchFetchPromise.catch(() => {});
+    return { data: matchCache.data, cached: true, stale: true };
   }
+
+  return { data: await matchFetchPromise, cached: false };
 }
 
 app.get("/api/womens-t20-world-cup", async (req, res) => {
