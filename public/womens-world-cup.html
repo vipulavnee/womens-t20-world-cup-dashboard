@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Vipul's Women's World Cup Scoreboard</title>
+<title>Vipul's Cricket Scoreboard</title>
 
 <style>
 :root{
@@ -23,6 +23,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .status,.btn{border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:900}
 .status{color:var(--green);background:#04111f}.status.warn{color:var(--orange)}.status.bad{color:var(--red)}
 .btn{cursor:pointer;background:#1d4ed8;color:white}
+.competition-select{border:1px solid var(--line);border-radius:12px;padding:10px 38px 10px 14px;font-weight:900;background:#071226;color:white;font-size:15px}
 
 .hero{
   border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:8px;
@@ -109,9 +110,16 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
   <div class="topbar">
     <div class="brand">
       <div class="logo">W</div>
-      <div><div class="title">Vipul's Women's World Cup Scoreboard</div><div class="subtitle">ICC Women's T20 World Cup 2026 &middot; Live data</div></div>
+      <div><div class="title">Vipul's Cricket Scoreboard</div><div class="subtitle" id="competitionSubtitle">ICC Women's T20 World Cup 2026 &middot; Live data</div></div>
     </div>
-    <div class="actions"><div class="status warn" id="apiStatus">● Loading</div><button class="btn" onclick="loadMatches()">↻ Refresh</button></div>
+    <div class="actions">
+      <select class="competition-select" id="competitionSelect" onchange="changeCompetition(this.value)">
+        <option value="Women's T20 World Cup">Women's World Cup</option>
+        <option value="India Men">India Men</option>
+        <option value="England vs New Zealand">England vs New Zealand</option>
+      </select>
+      <div class="status warn" id="apiStatus">● Loading</div><button class="btn" onclick="loadMatches()">↻ Refresh</button>
+    </div>
   </div>
 
   <div id="heroMount"></div>
@@ -128,6 +136,7 @@ let selectedMatchId = "";
 let userSelected = false;
 let matchRequestInFlight = false;
 const TOURNAMENT_CATEGORY = "Women's T20 World Cup";
+let activeCompetition = localStorage.getItem("activeCompetition") || TOURNAMENT_CATEGORY;
 
 /* Retained only as an inert historical reference; live tournament data comes from the server. */
 const $ = id => document.getElementById(id);
@@ -209,7 +218,21 @@ function sortDashboardMatches(matches){
 
 
 function getTournamentMatches(){
-  return sortDashboardMatches((allMatches || []).filter(m => m.category === TOURNAMENT_CATEGORY));
+  return sortDashboardMatches((allMatches || []).filter(m => m.category === activeCompetition));
+}
+
+function competitionLabel(){
+  return activeCompetition === TOURNAMENT_CATEGORY ? "Women's World Cup" : activeCompetition;
+}
+
+function changeCompetition(value){
+  activeCompetition=value;
+  localStorage.setItem("activeCompetition",value);
+  selectedMatchId="";
+  userSelected=false;
+  activeFilter="All";
+  $("competitionSubtitle").textContent=`${competitionLabel()} · Live data`;
+  renderPage();
 }
 
 function getDisplayMatches(){
@@ -368,6 +391,7 @@ function requiredRR(match){
   if(st === "Upcoming") return "Pre-match";
 
   if(st === "Finished") return "Match Finished";
+  if(activeCompetition === "England vs New Zealand") return "Not applicable";
 
   const status = String(match?.status || "").trim();
   const lower = status.toLowerCase();
@@ -448,6 +472,8 @@ function phase(match){
   if(isInningsBreak(match)){
     return ["Innings Break","orange"];
   }
+
+  if(activeCompetition === "England vs New Zealand")return["Test Match","blue"];
 
   const o=oversDec(displayOvers(match,currentScore(match)));
   if(!Number.isFinite(o))return["Live","blue"];
@@ -575,6 +601,7 @@ function winPredictor(match){
   const scores = Array.isArray(match?.scores) ? match.scores : [];
 
   if(st === "Upcoming") return ["Pre-match", "blue"];
+  if(activeCompetition === "England vs New Zealand" && st !== "Finished") return ["Test match", "blue"];
 
   if(st === "Finished"){
     const status = String(match?.status || "");
@@ -752,7 +779,7 @@ function renderMain(){
   $("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">Recent & Upcoming</div></div><div class="section">
     <div class="timer">
   <div>
-    <b>${upcoming?.name||"No upcoming Women's World Cup match found"}</b>
+    <b>${upcoming?.name||`No upcoming ${competitionLabel()} match found`}</b>
     <div class="match-status">${upcoming?`${getMatchNumber(upcoming)||"--"} · ${upcomingStartLabel(upcoming)}`:""}</div>
   </div>
 
@@ -781,7 +808,7 @@ function renderPage(){
   if(!match){
     $("heroMount").innerHTML="";
     $("commandMount").innerHTML="";
-    $("mainMount").innerHTML=`<div class="panel"><div class="section">No Women's World Cup match found.</div></div>`;
+    $("mainMount").innerHTML=`<div class="panel"><div class="section">No ${competitionLabel()} match found.</div></div>`;
     return;
   }
 
@@ -847,6 +874,11 @@ async function loadMatches(){
 }
 
 try{
+  if(![TOURNAMENT_CATEGORY,"India Men","England vs New Zealand"].includes(activeCompetition)){
+    activeCompetition=TOURNAMENT_CATEGORY;
+  }
+  $("competitionSelect").value=activeCompetition;
+  $("competitionSubtitle").textContent=`${competitionLabel()} · Live data`;
   const saved=JSON.parse(localStorage.getItem("womensWorldCupMatches")||"[]");
   if(Array.isArray(saved)&&saved.length){
     allMatches=saved;

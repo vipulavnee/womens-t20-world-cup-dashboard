@@ -39,6 +39,17 @@ const WOMENS_WORLD_CUP_TEAMS = {
   rsaw: "South Africa Women", slw: "Sri Lanka Women", wiw: "West Indies Women"
 };
 
+const MENS_TEAMS = {
+  afg: "Afghanistan", aus: "Australia", ban: "Bangladesh", eng: "England",
+  ind: "India", ire: "Ireland", nz: "New Zealand", pak: "Pakistan",
+  rsa: "South Africa", sl: "Sri Lanka", wi: "West Indies", zim: "Zimbabwe"
+};
+
+const CRICKET_TEAMS = { ...WOMENS_WORLD_CUP_TEAMS, ...MENS_TEAMS };
+const WOMENS_CATEGORY = "Women's T20 World Cup";
+const INDIA_CATEGORY = "India Men";
+const ENG_NZ_CATEGORY = "England vs New Zealand";
+
 const TEAM_SHORT = {
   "Australia Women": "AUSW", "Bangladesh Women": "BANW",
   "England Women": "ENGW", "India Women": "INDW", "Ireland Women": "IREW",
@@ -46,6 +57,10 @@ const TEAM_SHORT = {
   "Pakistan Women": "PAKW", "Scotland Women": "SCOW",
   "South Africa Women": "RSAW", "Sri Lanka Women": "SLW",
   "West Indies Women": "WIW"
+  ,"Afghanistan": "AFG", "Australia": "AUS", "Bangladesh": "BAN",
+  "England": "ENG", "India": "IND", "Ireland": "IRE", "New Zealand": "NZ",
+  "Pakistan": "PAK", "South Africa": "RSA", "Sri Lanka": "SL",
+  "West Indies": "WI", "Zimbabwe": "ZIM"
 };
 
 const ALL_SHORTS = Object.values(TEAM_SHORT);
@@ -112,7 +127,7 @@ function isValidScoreCandidate(runs, wickets, overs) {
 
   if (Number.isNaN(r) || Number.isNaN(w)) return false;
   if (w < 0 || w > 10) return false;
-  if (overs && (o === null || o < 0 || o > 20)) return false;
+  if (overs && (o === null || o < 0 || o > 300)) return false;
 
   return true;
 }
@@ -133,8 +148,8 @@ function parseTeams(slug) {
 
   if (!match) return [];
 
-  const first = WOMENS_WORLD_CUP_TEAMS[match[1]];
-  const second = WOMENS_WORLD_CUP_TEAMS[match[2]];
+  const first = CRICKET_TEAMS[match[1]];
+  const second = CRICKET_TEAMS[match[2]];
 
   return [first, second].filter(Boolean);
 }
@@ -143,12 +158,13 @@ function getTeamShort(teamName) {
   return TEAM_SHORT[teamName] || clean(teamName).toUpperCase();
 }
 
-function isWomensT20WorldCup(slug, teams) {
+function getMatchCategory(slug, teams) {
   const lower = String(slug || "").toLowerCase();
-
-  return (
-    teams.length === 2 && lower.includes("women") && lower.includes("world-cup")
-  );
+  if (teams.length !== 2) return "";
+  if (lower.includes("women") && lower.includes("world-cup")) return WOMENS_CATEGORY;
+  if (teams.includes("India")) return INDIA_CATEGORY;
+  if (teams.includes("England") && teams.includes("New Zealand")) return ENG_NZ_CATEGORY;
+  return "";
 }
 
 function getMatchName(teams, slug) {
@@ -255,7 +271,12 @@ function classifyState(status) {
     text.includes("chose to") ||
     text.includes("elected to") ||
     text.includes("drinks") ||
-    text.includes("strategic timeout")
+    text.includes("strategic timeout") ||
+    text.includes("stumps") ||
+    text.includes("lead by") ||
+    text.includes("trail by") ||
+    text.includes("lunch") ||
+    text.includes("tea")
   ) {
     return "Live";
   }
@@ -360,8 +381,8 @@ function extractScoresFromText(text, teams) {
 
   for (const short of shorts) {
     const patterns = [
-      new RegExp(`\\b${short}\\s+(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})\\s*\\((\\d{1,2}(?:\\.\\d)?)(?:\\/20)?\\)`, "gi"),
-      new RegExp(`\\b${short}\\s+(\\d{1,3})\\s*\\/\\s*(\\d{1,2})\\s*\\((\\d{1,2}(?:\\.\\d)?)(?:\\/20)?\\s*ov\\)`, "gi"),
+      new RegExp(`\\b${short}\\s+(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})\\s*\\((\\d{1,3}(?:\\.\\d)?)(?:\\/20)?\\)`, "gi"),
+      new RegExp(`\\b${short}\\s+(\\d{1,3})\\s*\\/\\s*(\\d{1,2})\\s*\\((\\d{1,3}(?:\\.\\d)?)(?:\\/20)?\\s*ov\\)`, "gi"),
       new RegExp(`\\b${short}\\s+(\\d{1,3})\\s*\\/\\s*(\\d{1,2})`, "gi"),
       new RegExp(`\\b${short}\\s+(\\d{1,3})\\s*-\\s*(\\d{1,2})`, "gi")
     ];
@@ -413,10 +434,10 @@ function extractFullScorecardScores(text, teams) {
     const escapedShort = shortTeam.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     const patterns = [
-      new RegExp(`${escapedFull}\\s+(?:Innings)?\\s*(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})\\s*\\((\\d{1,2}(?:\\.\\d)?)(?:\\/20)?\\s*Ov\\)`, "i"),
-      new RegExp(`${escapedShort}\\s+(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})\\s*\\((\\d{1,2}(?:\\.\\d)?)(?:\\/20)?\\s*Ov\\)`, "i"),
-      new RegExp(`${escapedFull}[^\\d]{0,60}(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})[^\\d]{0,20}(\\d{1,2}(?:\\.\\d)?)\\s*Ov`, "i"),
-      new RegExp(`${escapedShort}[^\\d]{0,60}(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})[^\\d]{0,20}(\\d{1,2}(?:\\.\\d)?)\\s*Ov`, "i")
+      new RegExp(`${escapedFull}\\s+(?:Innings)?\\s*(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})\\s*\\((\\d{1,3}(?:\\.\\d)?)(?:\\/20)?\\s*Ov\\)`, "i"),
+      new RegExp(`${escapedShort}\\s+(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})\\s*\\((\\d{1,3}(?:\\.\\d)?)(?:\\/20)?\\s*Ov\\)`, "i"),
+      new RegExp(`${escapedFull}[^\\d]{0,60}(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})[^\\d]{0,20}(\\d{1,3}(?:\\.\\d)?)\\s*Ov`, "i"),
+      new RegExp(`${escapedShort}[^\\d]{0,60}(\\d{1,3})\\s*[-/]\\s*(\\d{1,2})[^\\d]{0,20}(\\d{1,3}(?:\\.\\d)?)\\s*Ov`, "i")
     ];
 
     for (const pattern of patterns) {
@@ -477,7 +498,7 @@ async function fetchFinishedScorecardScores(url, teams) {
   return [];
 }
 
-function parseLiveDetails(text, scores) {
+function parseLiveDetails(text, scores, teams = []) {
   const source = clean(text);
 
   const details = {
@@ -511,7 +532,13 @@ function parseLiveDetails(text, scores) {
   if (lastFiveMatch) details.lastFive = clean(lastFiveMatch[1]);
 
   const chaseMatch = source.match(/([A-Za-z ]+)\s+need\s+(\d+)\s+runs?\s+in\s+(\d+)\s+balls?/i);
-  if (chaseMatch) {
+  const chaseTeamText = clean(chaseMatch?.[1]).toLowerCase();
+  const chaseBelongsToMatch = teams.some(team => {
+    const full = clean(team).toLowerCase();
+    const short = getTeamShort(team).toLowerCase();
+    return chaseTeamText.includes(full) || chaseTeamText.includes(short);
+  });
+  if (chaseMatch && chaseBelongsToMatch) {
     details.chase = `${clean(chaseMatch[1])} need ${chaseMatch[2]} runs in ${chaseMatch[3]} balls`;
     details.simpleSituation = details.chase;
   }
@@ -522,7 +549,7 @@ function parseLiveDetails(text, scores) {
     details.simpleSituation = details.chase;
   }
 
-  if (!details.rr && scores.length) {
+  if (scores.length) {
     const latestScore = scores[scores.length - 1];
     details.rr = latestScore.rr || calculateRR(latestScore.score, latestScore.overs);
   }
@@ -562,7 +589,7 @@ async function fetchMatchDetail(url, teams, stateHint) {
       }
     }
 
-    const liveDetails = parseLiveDetails(combinedText, scores);
+    const liveDetails = parseLiveDetails(combinedText, scores, teams);
 
     return {
       detailText: structuredText,
@@ -609,7 +636,8 @@ async function scrapeWomensT20WorldCupBase() {
       const fullUrl = href.startsWith("http") ? href : `https://www.cricbuzz.com${href}`;
       const slug = getSlug(fullUrl);
       const teams = parseTeams(slug);
-      if (!isWomensT20WorldCup(slug, teams)) return;
+      const category = getMatchCategory(slug, teams);
+      if (!category) return;
 
       const id = getMatchId(fullUrl);
       const titleText = clean(link.attr("title") || link.text());
@@ -618,7 +646,7 @@ async function scrapeWomensT20WorldCupBase() {
         : listUrl.includes("upcoming-matches")
           ? "Upcoming"
           : "";
-      if (!map.has(id)) map.set(id, { id, url: fullUrl, slug, teams, titleText, stateHint });
+      if (!map.has(id)) map.set(id, { id, url: fullUrl, slug, teams, titleText, stateHint, category });
     });
   }
 
@@ -627,11 +655,15 @@ async function scrapeWomensT20WorldCupBase() {
 
 async function scrapeWomensT20WorldCup() {
   const baseMatches = await scrapeWomensT20WorldCupBase();
-  const candidates = [
-    ...baseMatches.filter(item => !item.stateHint).slice(0, 3),
-    ...baseMatches.filter(item => item.stateHint === "Finished").slice(0, 2),
-    ...baseMatches.filter(item => item.stateHint === "Upcoming").slice(0, 2)
-  ].filter((item, index, list) =>
+  const categories = [WOMENS_CATEGORY, INDIA_CATEGORY, ENG_NZ_CATEGORY];
+  const candidates = categories.flatMap(category => {
+    const categoryMatches = baseMatches.filter(item => item.category === category);
+    return [
+      ...categoryMatches.filter(item => !item.stateHint).slice(0, 3),
+      ...categoryMatches.filter(item => item.stateHint === "Finished").slice(0, 2),
+      ...categoryMatches.filter(item => item.stateHint === "Upcoming").slice(0, 2)
+    ];
+  }).filter((item, index, list) =>
     list.findIndex(other => String(other.id) === String(item.id)) === index
   );
 
@@ -670,7 +702,7 @@ async function scrapeWomensT20WorldCup() {
       id: item.id,
       name: getMatchName(item.teams, item.slug),
       teams: item.teams,
-      category: "Women's T20 World Cup",
+      category: item.category,
       state,
       status,
       startISO,
