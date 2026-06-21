@@ -104,6 +104,33 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 .match-name{font-size:20px;font-weight:950}.match-status{font-size:15px;color:var(--muted);margin-top:4px}
 .footer{display:flex;justify-content:space-between;margin-top:8px;color:#94a3b8;font-size:13px}
 
+@media(min-width:901px){
+  html,body{height:100%;overflow:hidden}
+  .page{height:100dvh;max-height:100dvh;padding:5px 8px;display:flex;flex-direction:column;overflow:hidden}
+  .topbar{min-height:48px;margin-bottom:4px;flex:0 0 auto}
+  .logo{width:38px;height:38px}.title{font-size:30px}.subtitle{font-size:12px}
+  .status,.btn{padding:8px 12px}.competition-select{padding:8px 40px 8px 14px;font-size:16px}
+  #heroMount,#commandMount{flex:0 0 auto}
+  .hero{height:clamp(238px,32vh,330px);margin-bottom:5px}
+  .hero-grid{height:100%}.hero-left,.hero-right{padding:9px 14px;overflow:hidden}
+  .eyebrow{font-size:24px}.test-day-badge{padding:4px 9px;font-size:16px}
+  h1{font-size:34px;margin:6px 0}.hero-main{padding:6px 10px;font-size:24px}
+  .score-title{margin-bottom:5px}.scoreboard,.stats{gap:5px}.stats{margin-top:5px}
+  .score-row{padding:7px 11px}.score-row b,.score-row span{font-size:26px}.score-row small{font-size:15px}
+  .stat{padding:5px 10px}.stat small,.stat b{font-size:17px}
+  .cards{gap:5px;margin-bottom:5px}.card{min-height:56px;padding:8px 11px}.card small{font-size:17px}.card b{font-size:20px}
+  #mainMount{flex:1 1 auto;min-height:0;overflow:hidden}
+  #mainMount .panel{height:100%;display:flex;flex-direction:column}
+  #mainMount .panel-head{padding:6px 11px;flex:0 0 auto}.panel-title{font-size:24px}
+  #mainMount .section{padding:7px 10px;display:flex;flex:1;min-height:0;flex-direction:column}
+  .timer{padding:6px 10px;margin-bottom:5px;flex:0 0 auto}.timer:before{left:50%;transform:translateX(-50%);top:-7px;font-size:14px}
+  .timer b,.countdown{font-size:24px}
+  .filters{gap:5px;margin-bottom:5px;flex:0 0 auto}.filter{padding:5px 10px}
+  .match-list{display:flex;flex-direction:column;flex:1;min-height:0}
+  .match-row{flex:1 1 0;min-height:0;padding:5px 10px}.stage-label{font-size:21px}.match-name{font-size:18px}.match-status{font-size:13px;margin-top:2px}
+  .footer{min-height:13px;margin-top:3px;font-size:11px;flex:0 0 auto}
+}
+
 @media(max-width:900px){
   .hero-grid,.cards{grid-template-columns:1fr}
   h1{font-size:30px}.title{font-size:26px}
