@@ -156,7 +156,9 @@ const LOCAL_SCHEDULE_COPY = [
   ["copy-eng-ind-odi-1","Indian Men","1st ODI","England","India","2026-07-14T12:00:00.000Z","England",true],
   ["copy-eng-ind-odi-2","Indian Men","2nd ODI","England","India","2026-07-16T12:00:00.000Z","England",true],
   ["copy-eng-ind-odi-3","Indian Men","3rd ODI","England","India","2026-07-19T12:00:00.000Z","England",true],
-  ["copy-wtc-eng-nz-3","Test Championship","3rd Test","England","New Zealand","2026-06-25T10:00:00.000Z","Trent Bridge, Nottingham",false]
+  ["copy-wtc-eng-nz-3","Test Championship","3rd Test","England","New Zealand","2026-06-25T10:00:00.000Z","Trent Bridge, Nottingham",false],
+  ["copy-wtc-wi-sl-1","Test Championship","1st Test","West Indies","Sri Lanka","2026-06-25T14:00:00.000Z","Sir Vivian Richards Stadium, North Sound, Antigua",false],
+  ["copy-wtc-wi-sl-2","Test Championship","2nd Test","West Indies","Sri Lanka","2026-07-03T14:00:00.000Z","Sir Vivian Richards Stadium, North Sound, Antigua",false]
 ].map(([id,category,matchNo,team1,team2,startISO,venue,timeTBA])=>({
   id,category,matchNo,teams:[team1,team2],name:`${team1} vs ${team2}`,startISO,venue,timeTBA,
   state:"Upcoming",status:`Starts ${startISO.slice(0,10)} · ${venue}`,source:"Local schedule copy",scores:[],score:"Match not started",liveDetails:{venue}
@@ -302,7 +304,8 @@ function getDisplayMatches(){
   const matches=getTournamentMatches();
   const live=matches.filter(m=>stateOf(m)==="Live");
   const finished=matches.filter(m=>stateOf(m)==="Finished").slice(0,2);
-  const upcoming=matches.filter(m=>stateOf(m)==="Upcoming").slice(0,2);
+  const upcomingLimit=activeCompetition==="Test Championship"?3:2;
+  const upcoming=matches.filter(m=>stateOf(m)==="Upcoming").slice(0,upcomingLimit);
   const seen=new Set();
   return [...live,...finished,...upcoming].filter(m=>{
     const id=String(m.id);
@@ -525,7 +528,7 @@ function testProgress(match){
 }
 
 function testChaseData(match){
-  if(!isTest(match))return null;
+  if(!isTest(match)||stateOf(match)!=="Live")return null;
   const scores=Array.isArray(match?.scores)?match.scores:[];
   const rows=scores.map(score=>{
     const parts=String(score?.score||"").split("&").map(part=>part.trim());
@@ -684,7 +687,9 @@ function scoreHTML(match){
     }
 
     const scoreNote=isTest(match)
-      ? row===currentScore(match)
+      ? stateOf(match)==="Finished"
+        ? "Innings complete"
+        : row===currentScore(match)
         ? `${displayOvers(match,row)||"--"} ov · Batting`
         : "Innings complete"
       : `${displayOvers(match,row)||"--"} ov`;
@@ -696,6 +701,8 @@ function scoreHTML(match){
 
 function displaySituation(match){
   const status = String(match?.status || "").trim();
+
+  if(stateOf(match)==="Finished")return status||"Match finished";
 
   if(isTest(match)){
     const chase=testChaseData(match);
@@ -749,10 +756,11 @@ function stageLabelHtml(m){
 
 function renderHero(match){
 const no=getMatchNumber(match),st=stateOf(match),heading=st==="Upcoming"?"PRE-MATCH":st==="Finished"?"FINAL SCORES":"LIVE SCORES";
-const testMatch=isTest(match),testRR=testMatch?currentRR(match):"",testChase=testMatch?testChaseData(match):null;
-const rrLabel=testMatch?(testRR?"Innings RR (less relevant)":"Target"):"Current RR";
-const rrValue=testMatch?(testRR||testChase?.target||"--"):currentRR(match);
-const thirdLabel=testMatch?"Overs / Wickets Remaining":"Required RR";
+const testMatch=isTest(match),finishedTest=testMatch&&st==="Finished",testRR=testMatch?currentRR(match):"",testChase=testMatch?testChaseData(match):null;
+const rrLabel=finishedTest?"Result":testMatch?(testRR?"Innings RR (less relevant)":"Target"):"Current RR";
+const rrValue=finishedTest?(match?.status||"Match finished"):testMatch?(testRR||testChase?.target||"--"):currentRR(match);
+const thirdLabel=finishedTest?"Match Status":testMatch?"Overs / Wickets Remaining":"Required RR";
+const thirdValue=finishedTest?"Complete":requiredRR(match);
 
   $("heroMount").innerHTML=`<div class="hero"><div class="hero-grid">
     <div class="hero-left">
@@ -767,7 +775,7 @@ const thirdLabel=testMatch?"Overs / Wickets Remaining":"Required RR";
       <div class="stats">
 <div class="stat"><small>Situation</small><b>${womenLabel(matchSituationText(match))}</b></div>
         <div class="stat"><small>${rrLabel}</small><b>${rrValue}</b></div>
-        <div class="stat"><small>${thirdLabel}</small><b>${requiredRR(match)}</b></div>
+        <div class="stat"><small>${thirdLabel}</small><b>${thirdValue}</b></div>
       </div>
     </div>
   </div></div>`;
@@ -980,7 +988,7 @@ function winPredictor(match){
 }
 
 function renderCards(match){
-const r=recent(match),p=phase(match),testChase=testChaseData(match),fourthInnings=Boolean(testChase)||isTest(match)&&/need\s+\d+\s+runs?/i.test(String(match?.status||""));
+const r=recent(match),p=phase(match),testChase=testChaseData(match),fourthInnings=stateOf(match)==="Live"&&(Boolean(testChase)||isTest(match)&&/need\s+\d+\s+runs?/i.test(String(match?.status||"")));
 const m=fourthInnings?[testChase?.text||displaySituation(match),"blue"]:momentum(match),w=winPredictor(match);
 const momentumLabel=fourthInnings?"Fourth Innings":"Currently ahead";
   $("commandMount").innerHTML=`<div class="cards">

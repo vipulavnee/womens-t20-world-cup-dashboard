@@ -70,6 +70,20 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
     teams: ["England", "New Zealand"],
     startISO: "2026-06-25T10:00:00.000Z",
     venue: "Trent Bridge, Nottingham"
+  },
+  {
+    id: "wtc-wi-sl-2026-1",
+    matchNo: "1st Test",
+    teams: ["West Indies", "Sri Lanka"],
+    startISO: "2026-06-25T14:00:00.000Z",
+    venue: "Sir Vivian Richards Stadium, North Sound, Antigua"
+  },
+  {
+    id: "wtc-wi-sl-2026-2",
+    matchNo: "2nd Test",
+    teams: ["West Indies", "Sri Lanka"],
+    startISO: "2026-07-03T14:00:00.000Z",
+    venue: "Sir Vivian Richards Stadium, North Sound, Antigua"
   }
 ];
 
