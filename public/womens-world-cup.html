@@ -32,6 +32,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .hero-grid{display:grid;grid-template-columns:1fr .9fr}
 .hero-left,.hero-right{padding:14px 18px;background:rgba(0,0,0,.38)}
 .eyebrow{font-size:30px;color:var(--green);font-weight:950}
+.test-day-badge{display:inline-flex;align-items:center;margin-left:10px;padding:6px 12px;border:1px solid #ffd43b;border-radius:999px;background:linear-gradient(135deg,#ffd43b,#ff8a00);color:#071226;font-size:20px;font-weight:950;vertical-align:middle;box-shadow:0 0 20px #ffb00055}
 h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.04em}
 .hero-main{display:inline-block;background:rgba(4,17,31,.82);border:1px solid #ffffff22;border-radius:12px;padding:8px 12px;font-size:32px;font-weight:950}
 
@@ -101,6 +102,7 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 @media(max-width:900px){
   .hero-grid,.cards{grid-template-columns:1fr}
   h1{font-size:30px}.title{font-size:26px}
+  .test-day-badge{display:flex;width:max-content;margin:7px 0 0;font-size:16px}
 }
 </style>
 </head>
@@ -411,6 +413,34 @@ function currentRR(match){
   return calculated || row?.rr || String(match?.liveDetails?.rr||"").trim() || "Innings not started";
 }
 
+function testDay(match){
+  if(!isTest(match))return null;
+  const source=[
+    match?.liveDetails?.daySession,
+    match?.structuredStatus,
+    match?.status,
+    match?.rawText,
+    match?.detailText
+  ].filter(Boolean).join(" ");
+  const stated=source.match(/\bday\s*[-:]?\s*([1-5])\b/i)
+    ||source.match(/\b([1-5])(?:st|nd|rd|th)\s+day\b/i);
+  if(stated)return Number(stated[1]);
+
+  const start=parseStartTime(match);
+  if(Number.isFinite(start.getTime())&&stateOf(match)==="Live"){
+    const now=new Date();
+    const localStart=new Date(start.getFullYear(),start.getMonth(),start.getDate());
+    const localToday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    return Math.max(1,Math.min(5,Math.floor((localToday-localStart)/86400000)+1));
+  }
+  return null;
+}
+
+function testDayBadge(match){
+  const day=testDay(match);
+  return day?`<span class="test-day-badge">DAY ${day} OF 5</span>`:"";
+}
+
 function testProgress(match){
   const row=currentScore(match);
   if(!row)return"Awaiting innings data";
@@ -523,7 +553,8 @@ function phase(match){
 
   if(activeCompetition === "England vs New Zealand"){
     const atStumps=/stump/i.test(`${match?.status||""} ${match?.rawText||""}`);
-    return[atStumps?"Stumps":match?.liveDetails?.daySession||"Test Match","blue"];
+    const day=testDay(match);
+    return[`${day?`Day ${day} of 5 · `:""}${atStumps?"Stumps":"Test Match"}`,"blue"];
   }
 
   const o=oversDec(displayOvers(match,currentScore(match)));
@@ -660,7 +691,7 @@ const thirdLabel=testMatch?"Overs / Wickets Remaining":"Required RR";
 
   $("heroMount").innerHTML=`<div class="hero"><div class="hero-grid">
     <div class="hero-left">
-      <div class="eyebrow">${no||"Match"} · ${st||"--"}</div>
+      <div class="eyebrow">${no||"Match"} · ${st||"--"} ${testDayBadge(match)}</div>
       <h1>${match?.name||"No match found"}</h1>
 <div class="hero-main">${displaySituation(match)}</div>
 
