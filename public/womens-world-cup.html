@@ -93,8 +93,12 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 .stage-label{
   font-size:26px;
   font-weight:950;
-  color:var(--green);
+  display:inline-block;
+  margin-right:4px;
 }
+.stage-color-0{color:#00ff85}.stage-color-1{color:#00e5ff}.stage-color-2{color:#ffd43b}.stage-color-3{color:#ff7b00}.stage-color-4{color:#ff5da2}.stage-color-5{color:#a78bfa}
+.women-mark{font-size:.58em;color:#ff7ac3;font-weight:950;margin-left:2px;vertical-align:sub}
+.source-link{color:var(--cyan);font-weight:850;text-decoration:none}.source-link:hover{text-decoration:underline}
 
 .match-name{font-size:20px;font-weight:950}.match-status{font-size:15px;color:var(--muted);margin-top:4px}
 .footer{display:flex;justify-content:space-between;margin-top:8px;color:#94a3b8;font-size:13px}
@@ -158,6 +162,25 @@ const TEAM_SHORT = {
   "South Africa":"RSA","Sri Lanka":"SL","West Indies":"WI","Zimbabwe":"ZIM"
 };
 const teamShort = t => TEAM_SHORT[String(t || "")] || String(t || "");
+
+function womenLabel(value){
+  return String(value||"")
+    .replace(/\s+Women\b/g,'<sub class="women-mark">(W)</sub>')
+    .replace(/\b([A-Z]{2,3})-W\b/g,'$1<sub class="women-mark">(W)</sub>');
+}
+
+function scoreTeamLabel(team){
+  const short=teamShort(team);
+  return /\sWomen$/i.test(String(team||""))
+    ? `${short.replace(/-W$/i,"")}<sub class="women-mark">(W)</sub>`
+    : short;
+}
+
+function sourceLink(match){
+  return match?.source==="ESPNcricinfo"&&match?.url
+    ? ` · <a class="source-link" href="${match.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">ESPN schedule</a>`
+    : "";
+}
 
 function teamClass(t){
   t=String(t||"").toLowerCase();
@@ -328,8 +351,14 @@ function getMatchNumber(m){
   return "";
 }
 
+function matchNumberColor(m){
+  const number=Number(String(getMatchNumber(m)).match(/\d+/)?.[0]);
+  return Number.isFinite(number)?`stage-color-${number%6}`:"stage-color-0";
+}
+
 function countdown(m){
   if(!m)return"No upcoming match found";
+  if(m?.timeTBA)return upcomingStartLabel(m);
   const start=parseStartTime(m).getTime();
   if(!Number.isFinite(start))return"Start time awaiting API";
   const d = start - Date.now();
@@ -341,6 +370,7 @@ function countdown(m){
 function upcomingStartLabel(match){
   if(match?.startLabel)return match.startLabel;
   const start=parseStartTime(match);
+  if(match?.timeTBA&&Number.isFinite(start.getTime()))return `${start.toLocaleDateString([], {dateStyle:"medium"})} · Time TBA`;
   return Number.isFinite(start.getTime())
     ? start.toLocaleString([], {dateStyle:"medium",timeStyle:"short"})
     : "Time not supplied by API";
@@ -615,7 +645,7 @@ function scoreHTML(match){
     ].includes(normaliseTeam(s.team)));
 
     if(stateOf(match)==="Upcoming"){
-      return `<div class="score-row ${cls}"><b>${short}</b><span>Match not started</span><small>Pre-match</small></div>`;
+      return `<div class="score-row ${cls}"><b>${scoreTeamLabel(t)}</b><span>Match not started</span><small>Pre-match</small></div>`;
     }
 
     const scoreNote=isTest(match)
@@ -624,8 +654,8 @@ function scoreHTML(match){
         : "Innings complete"
       : `${displayOvers(match,row)||"--"} ov`;
     return row
-      ? `<div class="score-row ${cls}"><b>${short}</b><span>${row.score}</span><small>${scoreNote}</small></div>`
-      : `<div class="score-row ${cls}"><b>${short}</b><span>Innings not started</span><small>Yet to bat</small></div>`;
+      ? `<div class="score-row ${cls}"><b>${scoreTeamLabel(t)}</b><span>${row.score}</span><small>${scoreNote}</small></div>`
+      : `<div class="score-row ${cls}"><b>${scoreTeamLabel(t)}</b><span>Innings not started</span><small>Yet to bat</small></div>`;
   }).join("");
 }
 
@@ -677,7 +707,7 @@ function matchSituationText(match){
 
 function stageLabelHtml(m){
   const stage = getMatchNumber(m);
-  return stage ? `<span class="stage-label">${stage}:</span>` : "";
+  return stage ? `<span class="stage-label ${matchNumberColor(m)}">${stage}:</span>` : "";
 }
 
 
@@ -692,15 +722,15 @@ const thirdLabel=testMatch?"Overs / Wickets Remaining":"Required RR";
   $("heroMount").innerHTML=`<div class="hero"><div class="hero-grid">
     <div class="hero-left">
       <div class="eyebrow">${no||"Match"} · ${st||"--"} ${testDayBadge(match)}</div>
-      <h1>${match?.name||"No match found"}</h1>
-<div class="hero-main">${displaySituation(match)}</div>
+      <h1>${womenLabel(match?.name||"No match found")}</h1>
+<div class="hero-main">${womenLabel(displaySituation(match))}</div>
 
     </div>
     <div class="hero-right">
       <div class="score-title">${heading}</div>
       <div class="scoreboard">${scoreHTML(match)}</div>
       <div class="stats">
-<div class="stat"><small>Situation</small><b>${matchSituationText(match)}</b></div>
+<div class="stat"><small>Situation</small><b>${womenLabel(matchSituationText(match))}</b></div>
         <div class="stat"><small>${rrLabel}</small><b>${rrValue}</b></div>
         <div class="stat"><small>${thirdLabel}</small><b>${requiredRR(match)}</b></div>
       </div>
@@ -799,7 +829,7 @@ function winPredictor(match){
       else battingPct = 32;
     }
 
-    battingPct -= Math.max(0, w - 1) * 2.5;
+    battingPct -= Math.max(0, w - 1) * 3.25;
 
     if(!isODI(match) && o >= 15 && w <= 4 && projected >= 190) battingPct += 5;
     if(!isODI(match) && o >= 15 && w >= 9) battingPct -= 6;
@@ -921,8 +951,8 @@ const momentumLabel=fourthInnings?"Fourth Innings":"Currently ahead";
   $("commandMount").innerHTML=`<div class="cards">
     <div class="card ${r[1]}"><small>Current Pace: </small><b>${r[0]}</b></div>
     <div class="card ${p[1]}"><small>Match Phase: </small><b>${p[0]}</b></div>
-    <div class="card ${m[1]}"><small>${momentumLabel}: </small><b>${m[0]}</b></div>
-<div class="card ${w[1]}"><small>Win Predictor: </small><b>${w[0]}</b></div>
+    <div class="card ${m[1]}"><small>${momentumLabel}: </small><b>${womenLabel(m[0])}</b></div>
+<div class="card ${w[1]}"><small>Win Predictor: </small><b>${womenLabel(w[0])}</b></div>
   </div>`;
 }
 
@@ -948,8 +978,8 @@ function renderMain(){
   $("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">Recent & Upcoming</div></div><div class="section">
     ${upcoming?`<div class="timer">
   <div>
-    <b>${upcoming.name}</b>
-    <div class="match-status">${getMatchNumber(upcoming)||"--"} · ${upcomingStartLabel(upcoming)}</div>
+    <b>${womenLabel(upcoming.name)}</b>
+    <div class="match-status">${getMatchNumber(upcoming)||"--"} · ${upcomingStartLabel(upcoming)}${sourceLink(upcoming)}</div>
   </div>
 
   <div class="timer-right">
@@ -963,8 +993,8 @@ function renderMain(){
     <div class="match-list">${matches.map(m=>`<div class="match-row ${String(m.id)===String(selectedMatchId)?"active":""}" onclick="selectMatch('${m.id}')">
       <div>
 
-<div class="match-name">${stageLabelHtml(m)} ${m.name}</div>
-        <div class="match-status">${m.status||m.score||"--"}</div>
+<div class="match-name">${stageLabelHtml(m)} ${womenLabel(m.name)}</div>
+        <div class="match-status">${womenLabel(m.status||m.score||"--")}${sourceLink(m)}</div>
       </div>
       ${badge(stateOf(m))}
     </div>`).join("") || `<div class="match-row"><div>No matches found</div></div>`}</div>

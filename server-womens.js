@@ -50,6 +50,19 @@ const WOMENS_CATEGORY = "Women's T20 World Cup";
 const INDIA_CATEGORY = "India Men";
 const ENG_NZ_CATEGORY = "England vs New Zealand";
 
+const INDIA_FUTURE_FIXTURES = [
+  { id: "espn-ire-ind-2026-1", matchNo: "1st T20I", teams: ["Ireland", "India"], startISO: "2026-06-26T14:00:00.000Z", venue: "Civil Service Cricket Club, Belfast", url: "https://www.espncricinfo.com/series/india-in-ireland-2026-1528532/match-schedule-fixtures-and-results" },
+  { id: "espn-ire-ind-2026-2", matchNo: "2nd T20I", teams: ["Ireland", "India"], startISO: "2026-06-28T14:00:00.000Z", venue: "Civil Service Cricket Club, Belfast", url: "https://www.espncricinfo.com/series/india-in-ireland-2026-1528532/match-schedule-fixtures-and-results" },
+  { id: "espn-eng-ind-2026-t20-1", matchNo: "1st T20I", teams: ["England", "India"], startISO: "2026-07-01T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
+  { id: "espn-eng-ind-2026-t20-2", matchNo: "2nd T20I", teams: ["England", "India"], startISO: "2026-07-04T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
+  { id: "espn-eng-ind-2026-t20-3", matchNo: "3rd T20I", teams: ["England", "India"], startISO: "2026-07-07T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
+  { id: "espn-eng-ind-2026-t20-4", matchNo: "4th T20I", teams: ["England", "India"], startISO: "2026-07-09T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
+  { id: "espn-eng-ind-2026-t20-5", matchNo: "5th T20I", teams: ["England", "India"], startISO: "2026-07-11T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
+  { id: "espn-eng-ind-2026-odi-1", matchNo: "1st ODI", teams: ["England", "India"], startISO: "2026-07-14T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
+  { id: "espn-eng-ind-2026-odi-2", matchNo: "2nd ODI", teams: ["England", "India"], startISO: "2026-07-16T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
+  { id: "espn-eng-ind-2026-odi-3", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true }
+];
+
 const TEAM_SHORT = {
   "Australia Women": "AUSW", "Bangladesh Women": "BANW",
   "England Women": "ENGW", "India Women": "INDW", "Ireland Women": "IREW",
@@ -976,7 +989,29 @@ async function scrapeWomensT20WorldCup() {
     };
   }));
 
-  return matches.sort((a, b) => {
+  const scheduledIndiaMatches = INDIA_FUTURE_FIXTURES
+    .filter(fixture => Date.parse(fixture.startISO) > Date.now() - 6 * 60 * 60 * 1000)
+    .filter(fixture => !matches.some(match => {
+      if (match.category !== INDIA_CATEGORY) return false;
+      const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
+      const sameDate = match.startISO && fixture.startISO && match.startISO.slice(0, 10) === fixture.startISO.slice(0, 10);
+      return sameTeams && sameDate;
+    }))
+    .map(fixture => ({
+      ...fixture,
+      name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
+      category: INDIA_CATEGORY,
+      state: "Upcoming",
+      status: fixture.venue ? `Starts ${fixture.startISO.slice(0, 10)} · ${fixture.venue}` : `Starts ${fixture.startISO.slice(0, 10)}`,
+      source: "ESPNcricinfo",
+      score: "Match not started",
+      scores: [],
+      liveDetails: { venue: fixture.venue || "" },
+      liveScorecard: null,
+      rawText: ""
+    }));
+
+  return [...matches, ...scheduledIndiaMatches].sort((a, b) => {
     const rank = { Live: 1, Upcoming: 2, Finished: 3, Unknown: 4 };
     return (rank[a.state] || 9) - (rank[b.state] || 9);
   });
