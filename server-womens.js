@@ -86,6 +86,18 @@ function oversToDecimal(oversText) {
   return overs + balls / 6;
 }
 
+function normalizeOversText(oversText) {
+  const text = clean(oversText);
+  if (!text) return "";
+  const [wholeText, ballsText = "0"] = text.split(".");
+  let whole = parseInt(wholeText, 10);
+  let balls = parseInt(ballsText, 10);
+  if (Number.isNaN(whole) || Number.isNaN(balls)) return text;
+  whole += Math.floor(balls / 6);
+  balls %= 6;
+  return balls ? `${whole}.${balls}` : String(whole);
+}
+
 function calculateRR(scoreText, oversText) {
   const runsMatch = clean(scoreText).match(/(\d+)/);
   const runs = runsMatch ? parseInt(runsMatch[1], 10) : null;
@@ -213,11 +225,12 @@ function structuredTestScores(embedded) {
     const parts = innings.map(item => `${item.runs}${item.wickets < 10 ? `/${item.wickets || 0}` : ""}`);
     const latest = innings[innings.length - 1];
     const isCurrent = team.teamId === matchInfo.currBatTeamId;
+    const normalizedOvers = normalizeOversText(latest.overs);
     return {
       team: team.teamSName,
       score: parts.join(" & "),
-      overs: isCurrent ? String(latest.overs ?? "") : "",
-      rr: isCurrent ? calculateRR(String(latest.runs), String(latest.overs ?? "")) : "",
+      overs: isCurrent ? normalizedOvers : "",
+      rr: isCurrent ? calculateRR(String(latest.runs), normalizedOvers) : "",
       isCurrent,
       innings,
       raw: parts.join(" & ")
@@ -285,11 +298,11 @@ function getMatchName(teams, slug) {
     .join(" ");
 }
 
-async function fetchHtml(url) {
+async function fetchHtml(url, timeout = 8000) {
   const finalUrl = `${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`;
 
   const response = await axios.get(finalUrl, {
-    timeout: 8000,
+    timeout,
     headers: {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
@@ -699,7 +712,7 @@ function parseLiveDetails(text, scores, teams = []) {
 
 async function fetchMatchDetail(url, teams, stateHint) {
   try {
-    const html = await fetchHtml(url);
+    const html = await fetchHtml(url, 18000);
     const $ = cheerio.load(html);
     const schemaStart = String(html).match(/"startDate"\s*:\s*"([^"]+)"/i)?.[1] || "";
 
@@ -783,9 +796,9 @@ async function scrapeWomensT20WorldCupBase() {
   ];
 
   for (const listUrl of listUrls) {
-    let $;
+    let $, html;
     try {
-      const html = await fetchHtml(listUrl);
+      html = await fetchHtml(listUrl);
       $ = cheerio.load(html);
     } catch {
       continue;
@@ -809,7 +822,8 @@ async function scrapeWomensT20WorldCupBase() {
         : listUrl.includes("upcoming-matches")
           ? "Upcoming"
           : "";
-      if (!map.has(id)) map.set(id, { id, url: fullUrl, slug, teams, titleText, stateHint, category });
+      const embedded = extractEmbeddedMatchData(html, fullUrl);
+      if (!map.has(id)) map.set(id, { id, url: fullUrl, slug, teams, titleText, stateHint, category, embedded });
     });
   }
 
@@ -838,10 +852,29 @@ async function scrapeWomensT20WorldCup() {
 
     const detail = await fetchMatchDetail(item.url, item.teams, preliminaryState);
 
-    let status = detail.result || detail.structuredStatus || extractStatus(item.titleText, detail.detailText);
+    const embeddedTest = item.category === ENG_NZ_CATEGORY && item.embedded?.matchInfo?.matchFormat === "TEST";
+    if (embeddedTest) {
+      const structuredScores = structuredTestScores(item.embedded);
+      if (structuredScores.length) detail.scores = structuredScores;
+      const current = structuredScores.find(score => score.isCurrent);
+      const wickets = parseInt(current?.score?.split("&").pop().match(/\/(\d+)/)?.[1] || "0", 10);
+      detail.liveDetails = {
+        ...detail.liveDetails,
+        rr: detail.liveDetails?.rr || current?.rr || "",
+        battingTeam: current?.team || "",
+        wicketsLeft: Math.max(10 - wickets, 0),
+        daySession: clean(item.embedded.matchInfo.status).split(" - ")[0] || "",
+        venue: [item.embedded.matchInfo.venueInfo?.ground, item.embedded.matchInfo.venueInfo?.city].filter(Boolean).join(", ")
+      };
+    }
+
+    let status = detail.result || (embeddedTest ? clean(item.embedded.matchInfo.status) : detail.structuredStatus) || extractStatus(item.titleText, detail.detailText);
     let state = classifyState(status);
     if (state === "Unknown" && item.stateHint) state = item.stateHint;
-    const startISO = detail.startISO || extractStartISO(`${item.titleText} ${detail.detailText} ${detail.rawText}`);
+    const embeddedStart = embeddedTest && Number.isFinite(Number(item.embedded.matchInfo.startDate))
+      ? new Date(Number(item.embedded.matchInfo.startDate)).toISOString()
+      : "";
+    const startISO = detail.startISO || embeddedStart || extractStartISO(`${item.titleText} ${detail.detailText} ${detail.rawText}`);
 
     let finalScores = detail.scores;
 
@@ -857,7 +890,7 @@ async function scrapeWomensT20WorldCup() {
     if (state === "Live" && item.category === WOMENS_CATEGORY) {
       status = deriveT20ChaseStatus(finalScores) || status;
     }
-    if (state === "Live" && item.category === ENG_NZ_CATEGORY && !detail.structuredStatus) {
+    if (state === "Live" && item.category === ENG_NZ_CATEGORY && !embeddedTest && !detail.structuredStatus) {
       status = deriveTestLeadStatus(finalScores) || status;
     }
 
