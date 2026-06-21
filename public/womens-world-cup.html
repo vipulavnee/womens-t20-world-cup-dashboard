@@ -25,7 +25,6 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .btn{cursor:pointer;background:#1d4ed8;color:white}
 .competition-select{border:3px solid #ffd43b;border-radius:14px;padding:11px 42px 11px 16px;font-weight:950;background:#071226;color:white;font-size:17px;box-shadow:0 0 0 3px #ffb00022,0 0 22px #ffb00088;animation:selectorPulse 1.25s ease-in-out infinite}
 @keyframes selectorPulse{0%,100%{border-color:#ffd43b;box-shadow:0 0 0 3px #ffb00022,0 0 12px #ffb00055}50%{border-color:#00ff85;box-shadow:0 0 0 5px #00ff8522,0 0 30px #00ff85bb}}
-@media(prefers-reduced-motion:reduce){.competition-select,.match-row.future-match{animation:none}}
 
 .hero{
   border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:8px;
@@ -40,6 +39,8 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 
 .pill{border-radius:999px;padding:6px 10px;font-weight:950;font-size:12px;background:#0b172d}
 .live{color:var(--green)}.upcoming{color:var(--orange)}.finished{color:#ff8094}
+.pill.upcoming{animation:upcomingTextBlink 1s steps(2,end) infinite}
+@keyframes upcomingTextBlink{0%,45%{opacity:1}46%,100%{opacity:.2}}
 
 .score-title{font-weight:950;margin-bottom:8px}
 .scoreboard{display:grid;gap:8px}
@@ -90,8 +91,6 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 .match-row{justify-content:space-between;gap:14px;padding:10px 12px;border-bottom:1px solid var(--line);background:#03101d;cursor:pointer}
 .match-row:hover{background:#08203a}
 .match-row.active{background:#0b2a4a;border-left:2px solid var(--cyan)}
-.match-row.future-match{animation:futureMatchPulse 1.35s ease-in-out infinite}
-@keyframes futureMatchPulse{0%,100%{background:#03101d;box-shadow:inset 3px 0 0 #ff7b00}50%{background:#123451;box-shadow:inset 6px 0 0 #ffd43b,0 0 16px #00e5ff44}}
 .match-row:last-child{border-bottom:0}
 
 .stage-label{
@@ -138,7 +137,7 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
   h1{font-size:30px}.title{font-size:26px}
   .test-day-badge{display:flex;width:max-content;margin:7px 0 0;font-size:16px}
 }
-@media(prefers-reduced-motion:reduce){.competition-select,.match-row.future-match{animation:none}}
+@media(prefers-reduced-motion:reduce){.competition-select,.pill.upcoming{animation:none}}
 </style>
 </head>
 
@@ -1063,7 +1062,7 @@ function renderMain(){
 
     <div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div>
 
-    <div class="match-list">${matches.map(m=>`<div class="match-row ${stateOf(m)==="Upcoming"?"future-match":""} ${String(m.id)===String(selectedMatchId)?"active":""}" onclick="selectMatch('${m.id}')">
+    <div class="match-list">${matches.map(m=>`<div class="match-row ${String(m.id)===String(selectedMatchId)?"active":""}" onclick="selectMatch('${m.id}')">
       <div>
 
 <div class="match-name">${stageLabelHtml(m)} ${womenLabel(m.name)}</div>
