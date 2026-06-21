@@ -98,7 +98,6 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 }
 .stage-color-0{color:#00ff85}.stage-color-1{color:#00e5ff}.stage-color-2{color:#ffd43b}.stage-color-3{color:#ff7b00}.stage-color-4{color:#ff5da2}.stage-color-5{color:#a78bfa}
 .women-mark{display:inline;font-family:inherit;font-size:.5em;color:inherit;font-weight:inherit;margin-left:2px;vertical-align:baseline}
-.source-link{color:var(--cyan);font-weight:850;text-decoration:none}.source-link:hover{text-decoration:underline}
 
 .match-name{font-size:20px;font-weight:950}.match-status{font-size:15px;color:var(--muted);margin-top:4px}
 .footer{display:flex;justify-content:space-between;margin-top:8px;color:#94a3b8;font-size:13px}
@@ -121,8 +120,8 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
     <div class="actions">
       <select class="competition-select" id="competitionSelect" onchange="changeCompetition(this.value)">
         <option value="Women's T20 World Cup">Women's World Cup</option>
-        <option value="India Men">India Men</option>
-        <option value="England vs New Zealand">England vs New Zealand</option>
+        <option value="Indian Men">Indian Men</option>
+        <option value="Test Championship">Test Championship</option>
       </select>
       <div class="status warn" id="apiStatus">● Loading</div><button class="btn" onclick="loadMatches()">↻ Refresh</button>
     </div>
@@ -148,7 +147,7 @@ let activeCompetition = localStorage.getItem("activeCompetition") || TOURNAMENT_
 const $ = id => document.getElementById(id);
 const stateOf = m => String(m?.state || "").trim();
 const isODI = m => /\bodi\b/i.test(`${m?.name||""} ${m?.url||""}`);
-const isTest = m => /\btest\b/i.test(`${m?.name||""} ${m?.url||""}`);
+const isTest = m => /\btest\b/i.test(`${m?.matchNo||""} ${m?.name||""} ${m?.url||""}`) || m?.category==="Test Championship";
 const inningsOvers = m => isODI(m) ? 50 : 20;
 const inningsBalls = m => inningsOvers(m) * 6;
 
@@ -174,12 +173,6 @@ function scoreTeamLabel(team){
   return /\sWomen$/i.test(String(team||""))
     ? `${short.replace(/-W$/i,"")}<sub class="women-mark">(W)</sub>`
     : short;
-}
-
-function sourceLink(match){
-  return match?.source==="ESPNcricinfo"&&match?.url
-    ? ` · <a class="source-link" href="${match.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">ESPN schedule</a>`
-    : "";
 }
 
 function teamClass(t){
@@ -586,7 +579,7 @@ function phase(match){
     return ["Innings Break","orange"];
   }
 
-  if(activeCompetition === "England vs New Zealand"){
+  if(activeCompetition === "Test Championship"){
     const atStumps=/stump/i.test(`${match?.status||""} ${match?.rawText||""}`);
     const day=testDay(match);
     return[`${day?`Day ${day} of 5 · `:""}${atStumps?"Stumps":"Test Match"}`,"blue"];
@@ -614,7 +607,7 @@ function momentum(match){
   if(isInningsBreak(match)){
     return ["Waiting for chase","blue"];
   }
-  if(activeCompetition === "England vs New Zealand"){
+  if(activeCompetition === "Test Championship"){
     const batting=match?.liveDetails?.battingTeam;
     return[batting?`${batting} batting`:"Match in progress","blue"];
   }
@@ -984,7 +977,7 @@ function renderMain(){
     ${upcoming?`<div class="timer">
   <div>
     <b>${womenLabel(upcoming.name)}</b>
-    <div class="match-status">${getMatchNumber(upcoming)||"--"} · ${upcomingStartLabel(upcoming)}${sourceLink(upcoming)}</div>
+    <div class="match-status">${getMatchNumber(upcoming)||"--"} · ${upcomingStartLabel(upcoming)}</div>
   </div>
 
   <div class="timer-right">
@@ -999,7 +992,7 @@ function renderMain(){
       <div>
 
 <div class="match-name">${stageLabelHtml(m)} ${womenLabel(m.name)}</div>
-        <div class="match-status">${womenLabel(m.status||m.score||"--")}${sourceLink(m)}</div>
+        <div class="match-status">${womenLabel(m.status||m.score||"--")}</div>
       </div>
       ${badge(stateOf(m))}
     </div>`).join("") || `<div class="match-row"><div>No matches found</div></div>`}</div>
@@ -1078,7 +1071,9 @@ async function loadMatches(){
 }
 
 try{
-  if(![TOURNAMENT_CATEGORY,"India Men","England vs New Zealand"].includes(activeCompetition)){
+  if(activeCompetition==="India Men")activeCompetition="Indian Men";
+  if(activeCompetition==="England vs New Zealand")activeCompetition="Test Championship";
+  if(![TOURNAMENT_CATEGORY,"Indian Men","Test Championship"].includes(activeCompetition)){
     activeCompetition=TOURNAMENT_CATEGORY;
   }
   $("competitionSelect").value=activeCompetition;

@@ -47,8 +47,8 @@ const MENS_TEAMS = {
 
 const CRICKET_TEAMS = { ...WOMENS_WORLD_CUP_TEAMS, ...MENS_TEAMS };
 const WOMENS_CATEGORY = "Women's T20 World Cup";
-const INDIA_CATEGORY = "India Men";
-const ENG_NZ_CATEGORY = "England vs New Zealand";
+const INDIA_CATEGORY = "Indian Men";
+const ENG_NZ_CATEGORY = "Test Championship";
 
 const INDIA_FUTURE_FIXTURES = [
   { id: "espn-ire-ind-2026-1", matchNo: "1st T20I", teams: ["Ireland", "India"], startISO: "2026-06-26T14:00:00.000Z", venue: "Civil Service Cricket Club, Belfast", url: "https://www.espncricinfo.com/series/india-in-ireland-2026-1528532/match-schedule-fixtures-and-results" },
@@ -61,6 +61,16 @@ const INDIA_FUTURE_FIXTURES = [
   { id: "espn-eng-ind-2026-odi-1", matchNo: "1st ODI", teams: ["England", "India"], startISO: "2026-07-14T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
   { id: "espn-eng-ind-2026-odi-2", matchNo: "2nd ODI", teams: ["England", "India"], startISO: "2026-07-16T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
   { id: "espn-eng-ind-2026-odi-3", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true }
+];
+
+const TEST_CHAMPIONSHIP_FIXTURES = [
+  {
+    id: "wtc-eng-nz-2026-3",
+    matchNo: "3rd Test",
+    teams: ["England", "New Zealand"],
+    startISO: "2026-06-25T10:00:00.000Z",
+    venue: "Trent Bridge, Nottingham"
+  }
 ];
 
 const TEAM_SHORT = {
@@ -324,7 +334,7 @@ function getMatchCategory(slug, teams) {
   if (teams.length !== 2) return "";
   if (lower.includes("women") && lower.includes("world-cup")) return WOMENS_CATEGORY;
   if (teams.includes("India")) return INDIA_CATEGORY;
-  if (teams.includes("England") && teams.includes("New Zealand")) return ENG_NZ_CATEGORY;
+  if (/\btest\b/i.test(lower) && !lower.includes("women")) return ENG_NZ_CATEGORY;
   return "";
 }
 
@@ -1003,7 +1013,7 @@ async function scrapeWomensT20WorldCup() {
       category: INDIA_CATEGORY,
       state: "Upcoming",
       status: fixture.venue ? `Starts ${fixture.startISO.slice(0, 10)} · ${fixture.venue}` : `Starts ${fixture.startISO.slice(0, 10)}`,
-      source: "ESPNcricinfo",
+      source: "Local schedule copy",
       score: "Match not started",
       scores: [],
       liveDetails: { venue: fixture.venue || "" },
@@ -1011,7 +1021,29 @@ async function scrapeWomensT20WorldCup() {
       rawText: ""
     }));
 
-  return [...matches, ...scheduledIndiaMatches].sort((a, b) => {
+  const scheduledTestMatches = TEST_CHAMPIONSHIP_FIXTURES
+    .filter(fixture => Date.parse(fixture.startISO) > Date.now() - 6 * 60 * 60 * 1000)
+    .filter(fixture => !matches.some(match => {
+      if (match.category !== ENG_NZ_CATEGORY) return false;
+      const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
+      const sameDate = match.startISO && match.startISO.slice(0, 10) === fixture.startISO.slice(0, 10);
+      return sameTeams && sameDate;
+    }))
+    .map(fixture => ({
+      ...fixture,
+      name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
+      category: ENG_NZ_CATEGORY,
+      state: "Upcoming",
+      status: `Starts ${fixture.startISO.slice(0, 10)} · ${fixture.venue}`,
+      source: "Local schedule copy",
+      score: "Match not started",
+      scores: [],
+      liveDetails: { venue: fixture.venue },
+      liveScorecard: null,
+      rawText: ""
+    }));
+
+  return [...matches, ...scheduledIndiaMatches, ...scheduledTestMatches].sort((a, b) => {
     const rank = { Live: 1, Upcoming: 2, Finished: 3, Unknown: 4 };
     return (rank[a.state] || 9) - (rank[b.state] || 9);
   });
