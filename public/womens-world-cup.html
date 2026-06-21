@@ -103,7 +103,9 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 .women-mark{display:inline;font-family:inherit;font-size:.5em;color:inherit;font-weight:inherit;margin-left:2px;vertical-align:baseline}
 
 .match-name{font-size:20px;font-weight:950}.match-status{font-size:15px;color:var(--muted);margin-top:4px}
+.result-line,.hero-result-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .player-award{display:inline-block;margin-top:4px;padding:3px 8px;border:1px solid #ffd43b66;border-radius:999px;background:#ffd43b18;color:#ffd43b;font-size:13px;font-weight:950}
+.result-line .player-award,.hero-result-line .player-award{margin-top:4px}
 .footer{display:flex;justify-content:space-between;margin-top:8px;color:#94a3b8;font-size:13px}
 
 @media(min-width:901px){
@@ -797,8 +799,8 @@ const thirdValue=finishedTest?"Complete":requiredRR(match);
     <div class="hero-left">
       <div class="eyebrow">${no||"Match"} · ${st||"--"} ${testDayBadge(match)}</div>
       <h1>${womenLabel(match?.name||"No match found")}</h1>
-<div class="hero-main">${womenLabel(displaySituation(match))}</div>
-${st==="Finished"&&match?.playerOfMatch?`<div><span class="player-award">Player of the Match: ${match.playerOfMatch}</span></div>`:""}
+<div class="hero-result-line"><div class="hero-main">${womenLabel(displaySituation(match))}</div>
+${st==="Finished"&&match?.playerOfMatch?`<span class="player-award">Player of the Match: ${match.playerOfMatch}</span>`:""}</div>
 
     </div>
     <div class="hero-right">
@@ -1069,8 +1071,8 @@ function renderMain(){
       <div>
 
 <div class="match-name">${stageLabelHtml(m)} ${womenLabel(m.name)}</div>
-        <div class="match-status">${womenLabel(m.status||m.score||"--")}</div>
-        ${stateOf(m)==="Finished"&&m?.playerOfMatch?`<div class="player-award">Player of the Match: ${m.playerOfMatch}</div>`:""}
+        <div class="result-line"><div class="match-status">${womenLabel(m.status||m.score||"--")}</div>
+        ${stateOf(m)==="Finished"&&m?.playerOfMatch?`<span class="player-award">Player of the Match: ${m.playerOfMatch}</span>`:""}</div>
       </div>
       ${badge(stateOf(m))}
     </div>`).join("") || `<div class="match-row"><div>No matches found</div></div>`}</div>
