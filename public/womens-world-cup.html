@@ -121,6 +121,7 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
     </div>
     <div class="actions">
       <select class="competition-select" id="competitionSelect" onchange="changeCompetition(this.value)">
+        <option value="" disabled selected>Select series</option>
         <option value="Women's T20 World Cup">Women's World Cup</option>
         <option value="Indian Men">Indian Men</option>
         <option value="Test Championship">Test Championship</option>
@@ -143,7 +144,7 @@ let selectedMatchId = "";
 let userSelected = false;
 let matchRequestInFlight = false;
 const TOURNAMENT_CATEGORY = "Women's T20 World Cup";
-let activeCompetition = localStorage.getItem("activeCompetition") || TOURNAMENT_CATEGORY;
+let activeCompetition = TOURNAMENT_CATEGORY;
 
 const LOCAL_SCHEDULE_COPY = [
   ["copy-ire-ind-1","Indian Men","1st T20I","Ireland","India","2026-06-26T14:00:00.000Z","Civil Service Cricket Club, Belfast",false],
@@ -1116,12 +1117,9 @@ async function loadMatches(){
 }
 
 try{
-  if(activeCompetition==="India Men")activeCompetition="Indian Men";
-  if(activeCompetition==="England vs New Zealand")activeCompetition="Test Championship";
-  if(![TOURNAMENT_CATEGORY,"Indian Men","Test Championship"].includes(activeCompetition)){
-    activeCompetition=TOURNAMENT_CATEGORY;
-  }
-  $("competitionSelect").value=activeCompetition;
+  activeCompetition=TOURNAMENT_CATEGORY;
+  localStorage.removeItem("activeCompetition");
+  $("competitionSelect").value="";
   $("competitionSubtitle").textContent=`${competitionLabel()} · Live data`;
   const saved=JSON.parse(localStorage.getItem("cricketDashboardMatchesV2")||"[]");
   allMatches=withLocalSchedule(saved);
