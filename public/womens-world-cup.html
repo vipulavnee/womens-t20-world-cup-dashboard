@@ -23,7 +23,9 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .status,.btn{border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:900}
 .status{color:var(--green);background:#04111f}.status.warn{color:var(--orange)}.status.bad{color:var(--red)}
 .btn{cursor:pointer;background:#1d4ed8;color:white}
-.competition-select{border:1px solid var(--line);border-radius:12px;padding:10px 38px 10px 14px;font-weight:900;background:#071226;color:white;font-size:15px}
+.competition-select{border:3px solid #ffd43b;border-radius:14px;padding:11px 42px 11px 16px;font-weight:950;background:#071226;color:white;font-size:17px;box-shadow:0 0 0 3px #ffb00022,0 0 22px #ffb00088;animation:selectorPulse 1.25s ease-in-out infinite}
+@keyframes selectorPulse{0%,100%{border-color:#ffd43b;box-shadow:0 0 0 3px #ffb00022,0 0 12px #ffb00055}50%{border-color:#00ff85;box-shadow:0 0 0 5px #00ff8522,0 0 30px #00ff85bb}}
+@media(prefers-reduced-motion:reduce){.competition-select{animation:none}}
 
 .hero{
   border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:8px;
@@ -142,6 +144,41 @@ let userSelected = false;
 let matchRequestInFlight = false;
 const TOURNAMENT_CATEGORY = "Women's T20 World Cup";
 let activeCompetition = localStorage.getItem("activeCompetition") || TOURNAMENT_CATEGORY;
+
+const LOCAL_SCHEDULE_COPY = [
+  ["copy-ire-ind-1","Indian Men","1st T20I","Ireland","India","2026-06-26T14:00:00.000Z","Civil Service Cricket Club, Belfast",false],
+  ["copy-ire-ind-2","Indian Men","2nd T20I","Ireland","India","2026-06-28T14:00:00.000Z","Civil Service Cricket Club, Belfast",false],
+  ["copy-eng-ind-t20-1","Indian Men","1st T20I","England","India","2026-07-01T12:00:00.000Z","England",true],
+  ["copy-eng-ind-t20-2","Indian Men","2nd T20I","England","India","2026-07-04T12:00:00.000Z","England",true],
+  ["copy-eng-ind-t20-3","Indian Men","3rd T20I","England","India","2026-07-07T12:00:00.000Z","England",true],
+  ["copy-eng-ind-t20-4","Indian Men","4th T20I","England","India","2026-07-09T12:00:00.000Z","England",true],
+  ["copy-eng-ind-t20-5","Indian Men","5th T20I","England","India","2026-07-11T12:00:00.000Z","England",true],
+  ["copy-eng-ind-odi-1","Indian Men","1st ODI","England","India","2026-07-14T12:00:00.000Z","England",true],
+  ["copy-eng-ind-odi-2","Indian Men","2nd ODI","England","India","2026-07-16T12:00:00.000Z","England",true],
+  ["copy-eng-ind-odi-3","Indian Men","3rd ODI","England","India","2026-07-19T12:00:00.000Z","England",true],
+  ["copy-wtc-eng-nz-3","Test Championship","3rd Test","England","New Zealand","2026-06-25T10:00:00.000Z","Trent Bridge, Nottingham",false]
+].map(([id,category,matchNo,team1,team2,startISO,venue,timeTBA])=>({
+  id,category,matchNo,teams:[team1,team2],name:`${team1} vs ${team2}`,startISO,venue,timeTBA,
+  state:"Upcoming",status:`Starts ${startISO.slice(0,10)} · ${venue}`,source:"Local schedule copy",scores:[],score:"Match not started",liveDetails:{venue}
+}));
+
+function withLocalSchedule(matches){
+  const normalized=(Array.isArray(matches)?matches:[]).map(match=>({
+    ...match,
+    category:match?.category==="India Men"?"Indian Men":match?.category==="England vs New Zealand"?"Test Championship":match?.category
+  }));
+  const future=LOCAL_SCHEDULE_COPY.filter(match=>Date.parse(match.startISO)>Date.now()-6*60*60*1000);
+  for(const fixture of future){
+    const duplicate=normalized.some(match=>{
+      const sameCategory=match.category===fixture.category;
+      const sameTeams=[...(match.teams||[])].sort().join("|")===[...fixture.teams].sort().join("|");
+      const sameDate=String(match.startISO||"").slice(0,10)===fixture.startISO.slice(0,10);
+      return sameCategory&&sameTeams&&sameDate;
+    });
+    if(!duplicate)normalized.push(fixture);
+  }
+  return normalized;
+}
 
 /* Retained only as an inert historical reference; live tournament data comes from the server. */
 const $ = id => document.getElementById(id);
@@ -1034,7 +1071,7 @@ async function loadMatches(){
     if(!res.ok) throw new Error(`Match service returned ${res.status}`);
     const json=await res.json();
 
-    allMatches=json.data||[];
+    allMatches=withLocalSchedule(json.data||[]);
     if(allMatches.length)localStorage.setItem("cricketDashboardMatchesV2",JSON.stringify(allMatches));
 
     const live=getLiveMatch();
@@ -1079,10 +1116,8 @@ try{
   $("competitionSelect").value=activeCompetition;
   $("competitionSubtitle").textContent=`${competitionLabel()} · Live data`;
   const saved=JSON.parse(localStorage.getItem("cricketDashboardMatchesV2")||"[]");
-  if(Array.isArray(saved)&&saved.length){
-    allMatches=saved;
-    renderPage();
-  }
+  allMatches=withLocalSchedule(saved);
+  renderPage();
 }catch{}
 
 loadMatches();
