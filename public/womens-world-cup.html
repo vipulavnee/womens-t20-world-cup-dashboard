@@ -97,7 +97,7 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
   margin-right:4px;
 }
 .stage-color-0{color:#00ff85}.stage-color-1{color:#00e5ff}.stage-color-2{color:#ffd43b}.stage-color-3{color:#ff7b00}.stage-color-4{color:#ff5da2}.stage-color-5{color:#a78bfa}
-.women-mark{font-size:.58em;color:#ff7ac3;font-weight:950;margin-left:2px;vertical-align:sub}
+.women-mark{font-family:inherit;font-size:.5em;color:inherit;font-weight:inherit;margin-left:2px;vertical-align:sub}
 .source-link{color:var(--cyan);font-weight:850;text-decoration:none}.source-link:hover{text-decoration:underline}
 
 .match-name{font-size:20px;font-weight:950}.match-status{font-size:15px;color:var(--muted);margin-top:4px}
@@ -358,13 +358,16 @@ function matchNumberColor(m){
 
 function countdown(m){
   if(!m)return"No upcoming match found";
-  if(m?.timeTBA)return upcomingStartLabel(m);
   const start=parseStartTime(m).getTime();
   if(!Number.isFinite(start))return"Start time awaiting API";
   const d = start - Date.now();
   if(d <= 0)return"Starting now / started";
-  const s=Math.floor(d/1000),h=Math.floor(s/3600),min=Math.floor((s%3600)/60),sec=s%60;
-  return `${h}h ${min}m ${sec}s`;
+  const totalMinutes=Math.max(0,Math.floor(d/60000));
+  const days=Math.floor(totalMinutes/1440);
+  const hours=Math.floor((totalMinutes%1440)/60);
+  const minutes=totalMinutes%60;
+  const dayText=days>=1?`${days} ${days===1?"day":"days"} `:"";
+  return `${dayText}${hours} hr ${minutes} min`;
 }
 
 function upcomingStartLabel(match){
