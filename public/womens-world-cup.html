@@ -715,7 +715,6 @@ function winPredictor(match){
   const scores = Array.isArray(match?.scores) ? match.scores : [];
 
   if(st === "Upcoming") return ["Pre-match", "blue"];
-  if(activeCompetition === "England vs New Zealand" && st !== "Finished") return ["Test match", "blue"];
   if(isInningsBreak(match)) return ["Awaiting chase", "blue"];
 
   if(st === "Finished"){
@@ -723,6 +722,39 @@ function winPredictor(match){
     const fullWinner = (match?.teams || []).find(t => status.toUpperCase().includes(String(t).toUpperCase()));
     const winner = fullWinner ? teamShort(fullWinner) : "Winner";
     return [`${winner} 100%`, "purple"];
+  }
+
+  if(isTest(match)){
+    const chase=testChaseData(match);
+    if(!chase)return ["Available in the 4th innings", "blue"];
+
+    const chaseShort=teamShort(chase.team);
+    const defendTeam=teams.find(team=>team!==chaseShort)||teams[0]||"Opponent";
+    if(chase.needed<=0)return [`${chaseShort} 100%`, "pink"];
+    if(chase.wicketsLeft<=0)return [`${defendTeam} 100%`, "blue-team"];
+
+    const day=testDay(match)||5;
+    const atStumps=/stump/i.test(`${match?.status||""} ${match?.liveDetails?.daySession||""} ${match?.rawText||""}`);
+    const oversToday=atStumps?0:Number(match?.liveDetails?.oversLeftToday)||0;
+    const oversRemaining=Math.max(1,oversToday+Math.max(5-day,0)*90);
+    const inningsRate=Number(currentRR(match))||3;
+    const scoringCapacity=inningsRate*oversRemaining;
+    const runsPerWicket=chase.needed/Math.max(chase.wicketsLeft,1);
+
+    let chasePct=25+(chase.wicketsLeft-5)*7;
+    chasePct+=(scoringCapacity-chase.needed)/12;
+    chasePct-=Math.max(0,runsPerWicket-35)*0.7;
+    chasePct=Math.max(2,Math.min(75,Math.round(chasePct)));
+
+    let drawPct=8;
+    if(scoringCapacity<chase.needed*1.15)drawPct+=10;
+    if(chase.wicketsLeft>=7)drawPct+=5;
+    if(oversRemaining>90)drawPct+=5;
+    drawPct=Math.max(5,Math.min(45,Math.round(drawPct)));
+    if(chasePct+drawPct>90)drawPct=90-chasePct;
+    const defendPct=100-chasePct-drawPct;
+
+    return [`${chaseShort} ${chasePct}% · ${defendTeam} ${defendPct}% · Draw ${drawPct}%`, chasePct>defendPct?"pink":"blue-team"];
   }
 
   if(!scores.length || teams.length < 2) return ["Not enough data", "blue"];
@@ -851,7 +883,7 @@ function winPredictor(match){
   chasePct += (crr - rrr) * 10 * earlyChaseWeight;
 
   // Wickets remaining
-  chasePct += (wicketsLeft - 7) * 15;
+  chasePct += (wicketsLeft - 7) * 6;
 
   // End-over pressure
   if(ballsLeft <= 12) chasePct -= 8;
