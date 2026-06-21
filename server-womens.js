@@ -843,6 +843,14 @@ async function scrapeWomensT20WorldCup() {
   const categories = [WOMENS_CATEGORY, INDIA_CATEGORY, ENG_NZ_CATEGORY];
   const candidates = categories.flatMap(category => {
     const categoryMatches = baseMatches.filter(item => item.category === category);
+    if (category === WOMENS_CATEGORY) {
+      return [...categoryMatches]
+        .sort((a, b) => {
+          const numberOf = item => Number(String(item.slug).match(/(?:^|-)\s*(\d{1,3})(?:st|nd|rd|th)-match/i)?.[1] || 0);
+          return numberOf(b) - numberOf(a);
+        })
+        .slice(0, 5);
+    }
     return [
       ...categoryMatches.filter(item => !item.stateHint).slice(0, 3),
       ...categoryMatches.filter(item => item.stateHint === "Finished").slice(0, 2),

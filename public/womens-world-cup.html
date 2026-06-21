@@ -573,6 +573,17 @@ function scoreHTML(match){
 function displaySituation(match){
   const status = String(match?.status || "").trim();
 
+  if(isTest(match)){
+    const needed=status.match(/need\s+(\d+)\s+runs?/i);
+    if(needed){
+      const currentTeam=currentScore(match)?.team;
+      const chasing=(match?.teams||[]).find(team=>status.toLowerCase().includes(String(team).toLowerCase()))
+        || (match?.teams||[]).find(team=>teamShort(team)===currentTeam)
+        || currentTeam || "Batting side";
+      return `${chasing} needs ${needed[1]} runs to win`;
+    }
+  }
+
   let m = status.match(/need\s+(\d+)\s+off\s+(\d+)b/i);
   if(m){
     return `${m[1]} needed from ${m[2]} balls`;
@@ -612,7 +623,7 @@ function stageLabelHtml(m){
 
 function renderHero(match){
 const no=getMatchNumber(match),st=stateOf(match),heading=st==="Upcoming"?"PRE-MATCH":st==="Finished"?"FINAL SCORES":"LIVE SCORES";
-const testMatch=isTest(match),rrLabel=testMatch?"Innings RR":"Current RR",thirdLabel=testMatch?"Overs Bowled / Wickets Left":"Required RR";
+const testMatch=isTest(match),rrLabel=testMatch?"Innings RR (less relevant)":"Current RR",thirdLabel=testMatch?"Overs Bowled / Wickets Left":"Required RR";
 
   $("heroMount").innerHTML=`<div class="hero"><div class="hero-grid">
     <div class="hero-left">
@@ -808,11 +819,13 @@ function winPredictor(match){
 }
 
 function renderCards(match){
-const r=recent(match),p=phase(match),m=momentum(match),w=winPredictor(match);
+const r=recent(match),p=phase(match),fourthInnings=isTest(match)&&/need\s+\d+\s+runs?/i.test(String(match?.status||""));
+const m=fourthInnings?[displaySituation(match),"blue"]:momentum(match),w=winPredictor(match);
+const momentumLabel=fourthInnings?"Fourth Innings":"Currently ahead";
   $("commandMount").innerHTML=`<div class="cards">
     <div class="card ${r[1]}"><small>Current Pace: </small><b>${r[0]}</b></div>
     <div class="card ${p[1]}"><small>Match Phase: </small><b>${p[0]}</b></div>
-    <div class="card ${m[1]}"><small>Currently ahead: </small><b>${m[0]}</b></div>
+    <div class="card ${m[1]}"><small>${momentumLabel}: </small><b>${m[0]}</b></div>
 <div class="card ${w[1]}"><small>Win Predictor: </small><b>${w[0]}</b></div>
   </div>`;
 }
