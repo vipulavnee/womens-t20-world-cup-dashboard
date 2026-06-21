@@ -392,7 +392,7 @@ function classifyState(status) {
     text.includes("elected to") ||
     text.includes("drinks") ||
     text.includes("strategic timeout") ||
-    text.includes("stumps") ||
+    text.includes("stump") ||
     text.includes("lead by") ||
     text.includes("trail by") ||
     text.includes("lunch") ||
@@ -712,7 +712,7 @@ function parseLiveDetails(text, scores, teams = []) {
 
 async function fetchMatchDetail(url, teams, stateHint) {
   try {
-    const html = await fetchHtml(url, 18000);
+    let html = await fetchHtml(url, 18000);
     const $ = cheerio.load(html);
     const schemaStart = String(html).match(/"startDate"\s*:\s*"([^"]+)"/i)?.[1] || "";
 
@@ -720,7 +720,15 @@ async function fetchMatchDetail(url, teams, stateHint) {
     const bodyText = clean($("body").text());
     const metaDescription = clean($("meta[name='description']").attr("content"));
     const combinedText = clean(`${metaDescription} ${structuredText} ${bodyText}`);
-    const embedded = extractEmbeddedMatchData(html, url);
+    let embedded = extractEmbeddedMatchData(html, url);
+    if (!embedded && /(?:^|[-/])test(?:[-/]|$)/i.test(url)) {
+      try {
+        const scorecardHtml = await fetchHtml(scorecardUrlFromLiveUrl(url), 18000);
+        embedded = extractEmbeddedMatchData(scorecardHtml, url);
+      } catch {
+        // Keep the text fallback when Cricbuzz withholds its structured scorecard.
+      }
+    }
     const structuredTest = embedded?.matchInfo?.matchFormat === "TEST";
 
     const regularScores = extractScoresFromText(combinedText, teams);

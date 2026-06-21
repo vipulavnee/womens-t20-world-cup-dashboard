@@ -314,7 +314,16 @@ function getMatchNumber(m){
   const formatMatch=text.match(/\b(\d{1,2})(st|nd|rd|th)?[-\s]*(odi|test|t20i)\b/i);
   if(formatMatch)return `${formatMatch[1]}${formatMatch[2]||""} ${formatMatch[3].toUpperCase()}`;
 
-  return text.match(/\b(\d{1,3})(?:st|nd|rd|th)?[-\s]*match\b/i)?.[1] || "";
+  const numberedMatch=text.match(/\b(\d{1,3})(st|nd|rd|th)?[-\s]*match(?:[-\s]*group[-\s]*([a-z0-9]+))?/i);
+  if(numberedMatch){
+    const number=Number(numberedMatch[1]);
+    const suffix=numberedMatch[2]||(
+      number%100>=11&&number%100<=13?"th":number%10===1?"st":number%10===2?"nd":number%10===3?"rd":"th"
+    );
+    const group=numberedMatch[3]?` · Group ${numberedMatch[3].toUpperCase()}`:"";
+    return `${number}${suffix} Match${group}`;
+  }
+  return "";
 }
 
 function countdown(m){
