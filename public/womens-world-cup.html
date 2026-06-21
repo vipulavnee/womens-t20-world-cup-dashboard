@@ -103,6 +103,7 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 .women-mark{display:inline;font-family:inherit;font-size:.5em;color:inherit;font-weight:inherit;margin-left:2px;vertical-align:baseline}
 
 .match-name{font-size:20px;font-weight:950}.match-status{font-size:15px;color:var(--muted);margin-top:4px}
+.player-award{display:inline-block;margin-top:4px;padding:3px 8px;border:1px solid #ffd43b66;border-radius:999px;background:#ffd43b18;color:#ffd43b;font-size:13px;font-weight:950}
 .footer{display:flex;justify-content:space-between;margin-top:8px;color:#94a3b8;font-size:13px}
 
 @media(min-width:901px){
@@ -129,6 +130,7 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
   .filters{gap:5px;margin-bottom:5px;flex:0 0 auto}.filter{padding:5px 10px}
   .match-list{display:flex;flex-direction:column;flex:1;min-height:0}
   .match-row{flex:1 1 0;min-height:0;padding:5px 10px}.stage-label{font-size:21px}.match-name{font-size:18px}.match-status{font-size:13px;margin-top:2px}
+  .player-award{margin-top:2px;padding:2px 7px;font-size:11px}
   .footer{min-height:13px;margin-top:3px;font-size:11px;flex:0 0 auto}
 }
 
@@ -796,6 +798,7 @@ const thirdValue=finishedTest?"Complete":requiredRR(match);
       <div class="eyebrow">${no||"Match"} · ${st||"--"} ${testDayBadge(match)}</div>
       <h1>${womenLabel(match?.name||"No match found")}</h1>
 <div class="hero-main">${womenLabel(displaySituation(match))}</div>
+${st==="Finished"&&match?.playerOfMatch?`<div><span class="player-award">Player of the Match: ${match.playerOfMatch}</span></div>`:""}
 
     </div>
     <div class="hero-right">
@@ -1067,6 +1070,7 @@ function renderMain(){
 
 <div class="match-name">${stageLabelHtml(m)} ${womenLabel(m.name)}</div>
         <div class="match-status">${womenLabel(m.status||m.score||"--")}</div>
+        ${stateOf(m)==="Finished"&&m?.playerOfMatch?`<div class="player-award">Player of the Match: ${m.playerOfMatch}</div>`:""}
       </div>
       ${badge(stateOf(m))}
     </div>`).join("") || `<div class="match-row"><div>No matches found</div></div>`}</div>

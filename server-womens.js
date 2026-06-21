@@ -109,6 +109,21 @@ function clean(value) {
     .trim();
 }
 
+function extractPlayersOfMatch(html) {
+  const source = String(html || "").replace(/\\"/g, '"');
+  const names = [];
+  for (const section of source.matchAll(/"playersOfTheMatch"\s*:\s*\[(.*?)\]/gis)) {
+    for (const player of section[1].matchAll(/"name"\s*:\s*"([^"]+)"/gi)) {
+      names.push(clean(player[1]));
+    }
+  }
+  if (!names.length) {
+    const profile = source.match(/PLAYER OF THE MATCH[\s\S]{0,600}?title="View Profile Of ([^"]+)"/i);
+    if (profile) names.push(clean(profile[1]));
+  }
+  return [...new Set(names.filter(Boolean))].join(" & ");
+}
+
 function oversToDecimal(oversText) {
   const text = clean(oversText).replace(/ov/i, "").replace(/[()]/g, "").trim();
 
@@ -833,6 +848,7 @@ async function fetchMatchDetail(url, teams, stateHint) {
       liveDetails.venue = [embedded.matchInfo.venueInfo?.ground, embedded.matchInfo.venueInfo?.city].filter(Boolean).join(", ");
     }
     const result = extractOwnResult(combinedText, teams);
+    const playerOfMatch = extractPlayersOfMatch(html);
 
     return {
       detailText: structuredText,
@@ -840,6 +856,7 @@ async function fetchMatchDetail(url, teams, stateHint) {
       scores,
       liveDetails,
       result,
+      playerOfMatch,
       structuredStatus: structuredTest ? clean(embedded.matchInfo.status) : "",
       startISO: structuredTest && Number.isFinite(Number(embedded.matchInfo.startDate))
         ? new Date(Number(embedded.matchInfo.startDate)).toISOString()
@@ -854,6 +871,7 @@ async function fetchMatchDetail(url, teams, stateHint) {
       scores: [],
       liveDetails: {},
       result: "",
+      playerOfMatch: "",
       structuredStatus: "",
       startISO: ""
     };
@@ -1007,6 +1025,7 @@ async function scrapeWomensT20WorldCup() {
       source: "Cricbuzz",
       score: matchScore,
       scores: finalScores,
+      playerOfMatch: detail.playerOfMatch || "",
       liveDetails: detail.liveDetails,
       liveScorecard: null,
       rawText: detail.rawText
