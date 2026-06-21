@@ -179,6 +179,34 @@ function deriveTestLeadStatus(scores) {
   return lead > 0 ? `${totals[0].team} lead by ${lead}` : "Scores level";
 }
 
+function deriveTestContext(scores, teams) {
+  if (!Array.isArray(scores) || scores.length < 2) return null;
+  const rows = scores.map(score => {
+    const parts = String(score.score || "").split("&").map(part => part.trim());
+    return {
+      score,
+      parts,
+      runs: parts.map(part => parseInt(part.match(/\d+/)?.[0] || "0", 10)),
+      wickets: parts.map(part => parseInt(part.match(/\/(\d+)/)?.[1] || "10", 10))
+    };
+  });
+  if (!rows.every(row => row.parts.length >= 2)) return null;
+  const chasing = rows.find(row => row.wickets[1] < 10) || rows[1];
+  const defending = rows.find(row => row !== chasing);
+  const target = defending.runs.reduce((sum, value) => sum + value, 0) - chasing.runs[0] + 1;
+  const needed = Math.max(target - chasing.runs[1], 0);
+  const wicketsLeft = Math.max(10 - chasing.wickets[1], 0);
+  const fullTeam = teams.find(team => getTeamShort(team) === chasing.score.team) || chasing.score.team;
+  chasing.score.isCurrent = true;
+  return {
+    battingTeam: chasing.score.team,
+    target,
+    needed,
+    wicketsLeft,
+    status: `${fullTeam} need ${needed} runs to win`
+  };
+}
+
 function extractJsonObjectAfter(source, marker, fromIndex = 0) {
   const markerIndex = source.indexOf(marker, Math.max(0, fromIndex));
   if (markerIndex < 0) return null;
@@ -907,7 +935,20 @@ async function scrapeWomensT20WorldCup() {
       status = deriveT20ChaseStatus(finalScores) || status;
     }
     if (state === "Live" && item.category === ENG_NZ_CATEGORY && !embeddedTest && !detail.structuredStatus) {
-      status = deriveTestLeadStatus(finalScores) || status;
+      const testContext = deriveTestContext(finalScores, item.teams);
+      if (testContext) {
+        const atStumps = /stump/i.test(status);
+        status = testContext.status;
+        detail.liveDetails = {
+          ...detail.liveDetails,
+          battingTeam: testContext.battingTeam,
+          target: testContext.target,
+          wicketsLeft: testContext.wicketsLeft,
+          daySession: atStumps ? "Stumps" : detail.liveDetails?.daySession || "Test Match"
+        };
+      } else {
+        status = deriveTestLeadStatus(finalScores) || status;
+      }
     }
 
     const matchScore =

@@ -375,7 +375,12 @@ function displayOvers(match,row){return row?.overs || ""}
 function currentScore(match){
   const s=Array.isArray(match?.scores)?match.scores:[];
   if(!s.length)return null;
-  if(isTest(match))return s.find(row=>row?.isCurrent)||s.find(row=>row?.overs)||s.find(row=>String(row?.score||"").includes("&"))||s[0];
+  if(isTest(match))return s.find(row=>row?.isCurrent)
+    ||s.find(row=>{
+      const last=String(row?.score||"").split("&").pop();
+      const wickets=parseInt(last.match(/\/(\d+)/)?.[1]||"10",10);
+      return String(row?.score||"").includes("&")&&wickets<10;
+    })||s.find(row=>row?.overs)||s[0];
   if(s.length>=2 && stateOf(match)==="Live"){
     const withOvers=s.filter(row=>Number.isFinite(oversDec(row?.overs)));
     if(withOvers.length>=2)return [...withOvers].sort((a,b)=>oversDec(a.overs)-oversDec(b.overs))[0];
@@ -402,7 +407,7 @@ function currentRR(match){
   if(st==="Finished")return"Match Finished";
   const row=currentScore(match);
   const calculated=calcRR(currentInningsScore(row),displayOvers(match,row));
-  if(isTest(match))return String(match?.liveDetails?.rr||"").trim()||calculated||row?.rr||"Awaiting overs data";
+  if(isTest(match))return String(match?.liveDetails?.rr||"").trim()||calculated||row?.rr||"";
   return calculated || row?.rr || String(match?.liveDetails?.rr||"").trim() || "Innings not started";
 }
 
@@ -416,9 +421,29 @@ function testProgress(match){
     ? Number(match.liveDetails.wicketsLeft)
     : Math.max(10-wickets,0);
   const oversLeft=String(match?.liveDetails?.oversLeftToday||"").trim();
+  if(/stump/i.test(`${match?.status||""} ${match?.liveDetails?.daySession||""} ${match?.rawText||""}`)){
+    return `0 overs left today · ${wicketsLeft} wickets left`;
+  }
   return oversLeft
     ? `${oversLeft} overs left today · ${wicketsLeft} wickets left`
-    : `${overs} ov bowled · ${wicketsLeft} wickets left`;
+    : overs!=="--"?`${overs} ov bowled · ${wicketsLeft} wickets left`:`${wicketsLeft} wickets left`;
+}
+
+function testChaseData(match){
+  if(!isTest(match))return null;
+  const scores=Array.isArray(match?.scores)?match.scores:[];
+  const rows=scores.map(score=>{
+    const parts=String(score?.score||"").split("&").map(part=>part.trim());
+    return {score,parts,runs:parts.map(part=>runs(part)),wickets:parts.map(part=>parseInt(part.match(/\/(\d+)/)?.[1]||"10",10))};
+  });
+  if(rows.length<2||!rows.every(row=>row.parts.length>=2))return null;
+  const chasing=rows.find(row=>row.wickets[1]<10)||rows[1];
+  const defending=rows.find(row=>row!==chasing);
+  const target=defending.runs.reduce((sum,value)=>sum+value,0)-chasing.runs[0]+1;
+  const needed=Math.max(target-chasing.runs[1],0);
+  const wicketsLeft=Math.max(10-chasing.wickets[1],0);
+  const team=(match?.teams||[]).find(name=>teamShort(name)===chasing.score.team)||chasing.score.team;
+  return {team,target,needed,wicketsLeft,text:`${team} needs ${needed} runs to win`};
 }
 
 
@@ -496,7 +521,10 @@ function phase(match){
     return ["Innings Break","orange"];
   }
 
-  if(activeCompetition === "England vs New Zealand")return[match?.liveDetails?.daySession||"Test Match","blue"];
+  if(activeCompetition === "England vs New Zealand"){
+    const atStumps=/stump/i.test(`${match?.status||""} ${match?.rawText||""}`);
+    return[atStumps?"Stumps":match?.liveDetails?.daySession||"Test Match","blue"];
+  }
 
   const o=oversDec(displayOvers(match,currentScore(match)));
   if(!Number.isFinite(o))return["Live","blue"];
@@ -560,7 +588,7 @@ function scoreHTML(match){
     }
 
     const scoreNote=isTest(match)
-      ? row?.isCurrent
+      ? row===currentScore(match)
         ? `${displayOvers(match,row)||"--"} ov · Batting`
         : "Innings complete"
       : `${displayOvers(match,row)||"--"} ov`;
@@ -574,6 +602,8 @@ function displaySituation(match){
   const status = String(match?.status || "").trim();
 
   if(isTest(match)){
+    const chase=testChaseData(match);
+    if(chase)return chase.text;
     const needed=status.match(/need\s+(\d+)\s+runs?/i);
     if(needed){
       const currentTeam=currentScore(match)?.team;
@@ -623,7 +653,10 @@ function stageLabelHtml(m){
 
 function renderHero(match){
 const no=getMatchNumber(match),st=stateOf(match),heading=st==="Upcoming"?"PRE-MATCH":st==="Finished"?"FINAL SCORES":"LIVE SCORES";
-const testMatch=isTest(match),rrLabel=testMatch?"Innings RR (less relevant)":"Current RR",thirdLabel=testMatch?"Overs Bowled / Wickets Left":"Required RR";
+const testMatch=isTest(match),testRR=testMatch?currentRR(match):"",testChase=testMatch?testChaseData(match):null;
+const rrLabel=testMatch?(testRR?"Innings RR (less relevant)":"Target"):"Current RR";
+const rrValue=testMatch?(testRR||testChase?.target||"--"):currentRR(match);
+const thirdLabel=testMatch?"Overs / Wickets Remaining":"Required RR";
 
   $("heroMount").innerHTML=`<div class="hero"><div class="hero-grid">
     <div class="hero-left">
@@ -637,7 +670,7 @@ const testMatch=isTest(match),rrLabel=testMatch?"Innings RR (less relevant)":"Cu
       <div class="scoreboard">${scoreHTML(match)}</div>
       <div class="stats">
 <div class="stat"><small>Situation</small><b>${matchSituationText(match)}</b></div>
-        <div class="stat"><small>${rrLabel}</small><b>${currentRR(match)}</b></div>
+        <div class="stat"><small>${rrLabel}</small><b>${rrValue}</b></div>
         <div class="stat"><small>${thirdLabel}</small><b>${requiredRR(match)}</b></div>
       </div>
     </div>
@@ -819,8 +852,8 @@ function winPredictor(match){
 }
 
 function renderCards(match){
-const r=recent(match),p=phase(match),fourthInnings=isTest(match)&&/need\s+\d+\s+runs?/i.test(String(match?.status||""));
-const m=fourthInnings?[displaySituation(match),"blue"]:momentum(match),w=winPredictor(match);
+const r=recent(match),p=phase(match),testChase=testChaseData(match),fourthInnings=Boolean(testChase)||isTest(match)&&/need\s+\d+\s+runs?/i.test(String(match?.status||""));
+const m=fourthInnings?[testChase?.text||displaySituation(match),"blue"]:momentum(match),w=winPredictor(match);
 const momentumLabel=fourthInnings?"Fourth Innings":"Currently ahead";
   $("commandMount").innerHTML=`<div class="cards">
     <div class="card ${r[1]}"><small>Current Pace: </small><b>${r[0]}</b></div>
