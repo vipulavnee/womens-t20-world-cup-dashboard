@@ -87,6 +87,11 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
   }
 ];
 
+const WOMENS_FUTURE_FIXTURES = [
+  { id: "wwc-2026-19", matchNo: "19th Match · Group B", teams: ["New Zealand Women", "Scotland Women"], startISO: "2026-06-23T09:30:00.000Z", venue: "County Ground, Bristol" },
+  { id: "wwc-2026-20", matchNo: "20th Match · Group B", teams: ["Ireland Women", "Sri Lanka Women"], startISO: "2026-06-23T13:30:00.000Z", venue: "England" }
+];
+
 const TEAM_SHORT = {
   "Australia Women": "AUSW", "Bangladesh Women": "BANW",
   "England Women": "ENGW", "India Women": "INDW", "Ireland Women": "IREW",
@@ -914,11 +919,15 @@ async function scrapeWomensT20WorldCupBase() {
           ? "Upcoming"
           : "";
       const embedded = extractEmbeddedMatchData(html, fullUrl);
-      if (!map.has(id)) map.set(id, { id, url: fullUrl, slug, teams, titleText, stateHint, category, embedded });
+      if (!map.has(id)) {
+        map.set(id, { id, url: fullUrl, slug, teams, titleText, stateHint, category, embedded });
+      } else if (stateHint && !map.get(id).stateHint) {
+        map.get(id).stateHint = stateHint;
+      }
     });
   }
 
-  return Array.from(map.values()).slice(0, 24);
+  return Array.from(map.values());
 }
 
 async function scrapeWomensT20WorldCup() {
@@ -927,12 +936,12 @@ async function scrapeWomensT20WorldCup() {
   const candidates = categories.flatMap(category => {
     const categoryMatches = baseMatches.filter(item => item.category === category);
     if (category === WOMENS_CATEGORY) {
-      return [...categoryMatches]
-        .sort((a, b) => {
-          const numberOf = item => Number(String(item.slug).match(/(?:^|-)\s*(\d{1,3})(?:st|nd|rd|th)-match/i)?.[1] || 0);
-          return numberOf(b) - numberOf(a);
-        })
-        .slice(0, 5);
+      const numberOf = item => Number(String(item.slug).match(/(?:^|-)(\d{1,3})(?:st|nd|rd|th)-match/i)?.[1] || 0);
+      return [
+        ...categoryMatches.filter(item => !item.stateHint).sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 3),
+        ...categoryMatches.filter(item => item.stateHint === "Finished").sort((a, b) => numberOf(b) - numberOf(a)).slice(0, 2),
+        ...categoryMatches.filter(item => item.stateHint === "Upcoming").sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 3)
+      ];
     }
     return [
       ...categoryMatches.filter(item => !item.stateHint).slice(0, 3),
@@ -1076,7 +1085,30 @@ async function scrapeWomensT20WorldCup() {
       rawText: ""
     }));
 
-  return [...matches, ...scheduledIndiaMatches, ...scheduledTestMatches].sort((a, b) => {
+  const scheduledWomensMatches = WOMENS_FUTURE_FIXTURES
+    .filter(fixture => Date.parse(fixture.startISO) > Date.now() - 6 * 60 * 60 * 1000)
+    .filter(fixture => !matches.some(match => {
+      if (match.category !== WOMENS_CATEGORY) return false;
+      const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
+      const sameDate = match.startISO && match.startISO.slice(0, 10) === fixture.startISO.slice(0, 10);
+      return sameTeams && sameDate;
+    }))
+    .map(fixture => ({
+      ...fixture,
+      name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
+      category: WOMENS_CATEGORY,
+      state: "Upcoming",
+      status: `Starts ${fixture.startISO.slice(0, 10)} · ${fixture.venue}`,
+      source: "Local schedule copy",
+      score: "Match not started",
+      scores: [],
+      playerOfMatch: "",
+      liveDetails: { venue: fixture.venue },
+      liveScorecard: null,
+      rawText: ""
+    }));
+
+  return [...matches, ...scheduledIndiaMatches, ...scheduledTestMatches, ...scheduledWomensMatches].sort((a, b) => {
     const rank = { Live: 1, Upcoming: 2, Finished: 3, Unknown: 4 };
     return (rank[a.state] || 9) - (rank[b.state] || 9);
   });
