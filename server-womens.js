@@ -940,10 +940,14 @@ async function scrapeWomensT20WorldCup() {
     const categoryMatches = baseMatches.filter(item => item.category === category);
     if (category === WOMENS_CATEGORY) {
       const numberOf = item => Number(String(item.slug).match(/(?:^|-)(\d{1,3})(?:st|nd|rd|th)-match/i)?.[1] || 0);
+      const indiaWomenMatches = categoryMatches.filter(item => item.teams.includes("India Women"));
       return [
         ...categoryMatches.filter(item => !item.stateHint).sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 3),
         ...categoryMatches.filter(item => item.stateHint === "Finished").sort((a, b) => numberOf(b) - numberOf(a)).slice(0, 2),
-        ...categoryMatches.filter(item => item.stateHint === "Upcoming").sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 3)
+        ...categoryMatches.filter(item => item.stateHint === "Upcoming").sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 3),
+        ...indiaWomenMatches.filter(item => item.stateHint === "Finished").sort((a, b) => numberOf(b) - numberOf(a)).slice(0, 2),
+        ...indiaWomenMatches.filter(item => item.stateHint === "Upcoming").sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 1),
+        ...indiaWomenMatches.filter(item => !item.stateHint).sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 1)
       ];
     }
     return [
