@@ -156,6 +156,7 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
       <select class="competition-select" id="competitionSelect" onchange="changeCompetition(this.value)">
         <option value="" disabled selected>Select series</option>
         <option value="Women's T20 World Cup">Women's World Cup</option>
+        <option value="India">India</option>
         <option value="Indian Men">Indian Men</option>
         <option value="Test Championship">Test Championship</option>
       </select>
@@ -177,6 +178,7 @@ let selectedMatchId = "";
 let userSelected = false;
 let matchRequestInFlight = false;
 const TOURNAMENT_CATEGORY = "Women's T20 World Cup";
+const INDIA_VIEW_CATEGORY = "India";
 let activeCompetition = TOURNAMENT_CATEGORY;
 
 const LOCAL_SCHEDULE_COPY = [
@@ -282,6 +284,10 @@ function isFutureUpcoming(m){
   return start>Date.now();
 }
 
+function isIndiaMatch(m){
+  return (m?.teams||[]).some(team=>/^india(?:\s+women)?$/i.test(String(team||"").trim()));
+}
+
 function stageRank(m){
   const x = String(m?.matchNo || m?.name || m?.status || m?.url || "").toLowerCase();
 
@@ -326,11 +332,12 @@ function sortDashboardMatches(matches){
 
 function getTournamentMatches(){
   return sortDashboardMatches((allMatches || [])
-    .filter(m => m.category === activeCompetition)
+    .filter(m => activeCompetition===INDIA_VIEW_CATEGORY ? isIndiaMatch(m) : m.category === activeCompetition)
     .filter(m => stateOf(m)!=="Upcoming" || isFutureUpcoming(m)));
 }
 
 function competitionLabel(){
+  if(activeCompetition === INDIA_VIEW_CATEGORY) return "India";
   return activeCompetition === TOURNAMENT_CATEGORY ? "Women's World Cup" : activeCompetition;
 }
 
@@ -348,10 +355,15 @@ function changeCompetition(value){
 function getDisplayMatches(){
   const matches=getTournamentMatches();
   const live=matches.filter(m=>stateOf(m)==="Live");
-  const finished=matches.filter(m=>stateOf(m)==="Finished").slice(0,1);
-  const upcoming=matches.filter(isFutureUpcoming).slice(0,2);
+  const finishedLimit=activeCompetition===TOURNAMENT_CATEGORY ? 2 : activeCompetition===INDIA_VIEW_CATEGORY ? 2 : 1;
+  const upcomingLimit=activeCompetition===INDIA_VIEW_CATEGORY ? 1 : 2;
+  const finished=matches.filter(m=>stateOf(m)==="Finished").slice(0,finishedLimit);
+  const upcoming=matches.filter(isFutureUpcoming).slice(0,upcomingLimit);
+  const ordered=activeCompetition===INDIA_VIEW_CATEGORY
+    ? [...live,...upcoming,...finished]
+    : [...live,...finished,...upcoming];
   const seen=new Set();
-  return [...live,...finished,...upcoming].filter(m=>{
+  return ordered.filter(m=>{
     const id=String(m.id);
     if(seen.has(id))return false;
     seen.add(id);
@@ -398,7 +410,9 @@ function getPrimaryMatch(){
   const finished = matches.find(m => stateOf(m) === "Finished");
   const upcoming = getUpcomingMatch();
 
-  const fallback = finished || upcoming || matches[0] || null;
+  const fallback = activeCompetition===INDIA_VIEW_CATEGORY
+    ? upcoming || finished || matches[0] || null
+    : finished || upcoming || matches[0] || null;
 
   if(fallback) selectedMatchId = fallback.id;
   return fallback;

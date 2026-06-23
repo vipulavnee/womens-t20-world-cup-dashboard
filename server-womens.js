@@ -913,11 +913,14 @@ async function scrapeWomensT20WorldCupBase() {
 
       const id = getMatchId(fullUrl);
       const titleText = clean(link.attr("title") || link.text());
-      const stateHint = listUrl.includes("recent-matches")
-        ? "Finished"
-        : listUrl.includes("upcoming-matches")
-          ? "Upcoming"
-          : "";
+      const titleState = classifyState(extractStatus(titleText, ""));
+      const stateHint = titleState !== "Unknown"
+        ? titleState
+        : listUrl.includes("recent-matches")
+          ? "Finished"
+          : listUrl.includes("upcoming-matches")
+            ? "Upcoming"
+            : "";
       const embedded = extractEmbeddedMatchData(html, fullUrl);
       if (!map.has(id)) {
         map.set(id, { id, url: fullUrl, slug, teams, titleText, stateHint, category, embedded });
