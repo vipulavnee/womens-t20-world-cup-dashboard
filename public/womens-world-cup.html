@@ -205,7 +205,7 @@ function withLocalSchedule(matches){
     ...match,
     category:match?.category==="India Men"?"Indian Men":match?.category==="England vs New Zealand"?"Test Championship":match?.category
   }));
-  const future=LOCAL_SCHEDULE_COPY.filter(match=>Date.parse(match.startISO)>Date.now()-6*60*60*1000);
+  const future=LOCAL_SCHEDULE_COPY.filter(match=>Date.parse(match.startISO)>Date.now());
   for(const fixture of future){
     const duplicate=normalized.some(match=>{
       const sameCategory=match.category===fixture.category;
@@ -275,6 +275,13 @@ function parseStartTime(m){
   return new Date(m?.startISO || m?.dateTimeGMT || m?.date_start || m?.date_start_ist || 0);
 }
 
+function isFutureUpcoming(m){
+  if(stateOf(m)!=="Upcoming")return false;
+  const start=parseStartTime(m).getTime();
+  if(!Number.isFinite(start))return true;
+  return start>Date.now();
+}
+
 function stageRank(m){
   const x = String(m?.matchNo || m?.name || m?.status || m?.url || "").toLowerCase();
 
@@ -318,7 +325,9 @@ function sortDashboardMatches(matches){
 
 
 function getTournamentMatches(){
-  return sortDashboardMatches((allMatches || []).filter(m => m.category === activeCompetition));
+  return sortDashboardMatches((allMatches || [])
+    .filter(m => m.category === activeCompetition)
+    .filter(m => stateOf(m)!=="Upcoming" || isFutureUpcoming(m)));
 }
 
 function competitionLabel(){
@@ -340,7 +349,7 @@ function getDisplayMatches(){
   const matches=getTournamentMatches();
   const live=matches.filter(m=>stateOf(m)==="Live");
   const finished=matches.filter(m=>stateOf(m)==="Finished").slice(0,1);
-  const upcoming=matches.filter(m=>stateOf(m)==="Upcoming").slice(0,2);
+  const upcoming=matches.filter(isFutureUpcoming).slice(0,2);
   const seen=new Set();
   return [...live,...finished,...upcoming].filter(m=>{
     const id=String(m.id);
@@ -356,7 +365,7 @@ function getLiveMatch(){
 
 function getUpcomingMatch(){
   return getTournamentMatches()
-    .filter(m => stateOf(m) === "Upcoming")
+    .filter(isFutureUpcoming)
     .sort((a,b) => {
       const aTime=parseStartTime(a).getTime(),bTime=parseStartTime(b).getTime();
       if(Number.isFinite(aTime)&&Number.isFinite(bTime))return aTime-bTime;

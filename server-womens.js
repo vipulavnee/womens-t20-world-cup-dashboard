@@ -1042,7 +1042,7 @@ async function scrapeWomensT20WorldCup() {
   }));
 
   const scheduledIndiaMatches = INDIA_FUTURE_FIXTURES
-    .filter(fixture => Date.parse(fixture.startISO) > Date.now() - 6 * 60 * 60 * 1000)
+    .filter(fixture => Date.parse(fixture.startISO) > Date.now())
     .filter(fixture => !matches.some(match => {
       if (match.category !== INDIA_CATEGORY) return false;
       const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
@@ -1064,7 +1064,7 @@ async function scrapeWomensT20WorldCup() {
     }));
 
   const scheduledTestMatches = TEST_CHAMPIONSHIP_FIXTURES
-    .filter(fixture => Date.parse(fixture.startISO) > Date.now() - 6 * 60 * 60 * 1000)
+    .filter(fixture => Date.parse(fixture.startISO) > Date.now())
     .filter(fixture => !matches.some(match => {
       if (match.category !== ENG_NZ_CATEGORY) return false;
       const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
@@ -1086,7 +1086,7 @@ async function scrapeWomensT20WorldCup() {
     }));
 
   const scheduledWomensMatches = WOMENS_FUTURE_FIXTURES
-    .filter(fixture => Date.parse(fixture.startISO) > Date.now() - 6 * 60 * 60 * 1000)
+    .filter(fixture => Date.parse(fixture.startISO) > Date.now())
     .filter(fixture => !matches.some(match => {
       if (match.category !== WOMENS_CATEGORY) return false;
       const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
