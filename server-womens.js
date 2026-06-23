@@ -89,7 +89,23 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
 
 const WOMENS_FUTURE_FIXTURES = [
   { id: "wwc-2026-19", matchNo: "19th Match · Group B", teams: ["New Zealand Women", "Scotland Women"], startISO: "2026-06-23T09:30:00.000Z", venue: "County Ground, Bristol" },
-  { id: "wwc-2026-20", matchNo: "20th Match · Group B", teams: ["Ireland Women", "Sri Lanka Women"], startISO: "2026-06-23T13:30:00.000Z", venue: "England" }
+  { id: "wwc-2026-20", matchNo: "20th Match · Group B", teams: ["Ireland Women", "Sri Lanka Women"], startISO: "2026-06-23T13:30:00.000Z", venue: "England" },
+  {
+    id: "wwc-2026-23",
+    matchNo: "23rd Match · Group A",
+    teams: ["India Women", "Bangladesh Women"],
+    startISO: "2026-06-25T13:30:00.000Z",
+    venue: "Emirates Old Trafford, Manchester",
+    url: "https://www.cricbuzz.com/live-cricket-scores/121961/indw-vs-banw-23rd-match-group-a-icc-womens-t20-world-cup-2026"
+  },
+  {
+    id: "wwc-2026-30",
+    matchNo: "30th Match · Group A",
+    teams: ["Australia Women", "India Women"],
+    startISO: "2026-06-28T13:30:00.000Z",
+    venue: "Lord's, London",
+    url: "https://www.cricbuzz.com/live-cricket-scores/122011/ausw-vs-indw-30th-match-group-a-icc-womens-t20-world-cup-2026"
+  }
 ];
 
 const TEAM_SHORT = {
