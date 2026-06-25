@@ -130,8 +130,13 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
   .timer{padding:6px 10px;margin-bottom:5px;flex:0 0 auto}.timer:before{left:50%;transform:translateX(-50%);top:-7px;font-size:14px}
   .timer b,.countdown{font-size:24px}
   .filters{gap:5px;margin-bottom:5px;flex:0 0 auto}.filter{padding:5px 10px}
-  .match-list{display:flex;flex-direction:column;flex:1;min-height:0}
-  .match-row{flex:1 1 0;min-height:0;padding:5px 10px}.stage-label{font-size:21px}.match-name{font-size:18px}.match-status{font-size:13px;margin-top:2px}
+  .match-list{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto}
+  .match-row{flex:0 0 auto;min-height:58px;padding:6px 10px;align-items:center}
+  .match-row>div{min-width:0;max-width:calc(100% - 86px)}
+  .stage-label{font-size:18px}
+  .match-name{font-size:16px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .match-status{font-size:12px;line-height:1.2;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .result-line{display:block;min-width:0}
   .player-award{margin-top:2px;padding:2px 7px;font-size:11px}
   .footer{min-height:13px;margin-top:3px;font-size:11px;flex:0 0 auto}
 }
