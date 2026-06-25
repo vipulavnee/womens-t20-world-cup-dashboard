@@ -1,11 +1,11 @@
-const express = require("express");
+﻿const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const axios = require("axios");
 const cheerio = require("cheerio");
 
 const app = express();
-const PORT = process.env.PORT || process.env.WOMENS_PORT || 3001;
+const PORT = process.env.PORT || process.env.WOMENS_PORT || 3002;
 const CACHE_TTL_MS = 15000;
 let matchCache = { data: null, fetchedAt: 0 };
 let matchFetchPromise = null;
@@ -88,11 +88,11 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
 ];
 
 const WOMENS_FUTURE_FIXTURES = [
-  { id: "wwc-2026-19", matchNo: "19th Match · Group B", teams: ["New Zealand Women", "Scotland Women"], startISO: "2026-06-23T09:30:00.000Z", venue: "County Ground, Bristol" },
-  { id: "wwc-2026-20", matchNo: "20th Match · Group B", teams: ["Ireland Women", "Sri Lanka Women"], startISO: "2026-06-23T13:30:00.000Z", venue: "England" },
+  { id: "wwc-2026-19", matchNo: "19th Match Â· Group B", teams: ["New Zealand Women", "Scotland Women"], startISO: "2026-06-23T09:30:00.000Z", venue: "County Ground, Bristol" },
+  { id: "wwc-2026-20", matchNo: "20th Match Â· Group B", teams: ["Ireland Women", "Sri Lanka Women"], startISO: "2026-06-23T13:30:00.000Z", venue: "England" },
   {
     id: "wwc-2026-23",
-    matchNo: "23rd Match · Group A",
+    matchNo: "23rd Match Â· Group A",
     teams: ["India Women", "Bangladesh Women"],
     startISO: "2026-06-25T13:30:00.000Z",
     venue: "Emirates Old Trafford, Manchester",
@@ -100,7 +100,7 @@ const WOMENS_FUTURE_FIXTURES = [
   },
   {
     id: "wwc-2026-30",
-    matchNo: "30th Match · Group A",
+    matchNo: "30th Match Â· Group A",
     teams: ["Australia Women", "India Women"],
     startISO: "2026-06-28T13:30:00.000Z",
     venue: "Lord's, London",
@@ -1079,7 +1079,7 @@ async function scrapeWomensT20WorldCup() {
       name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
       category: INDIA_CATEGORY,
       state: "Upcoming",
-      status: fixture.venue ? `Starts ${fixture.startISO.slice(0, 10)} · ${fixture.venue}` : `Starts ${fixture.startISO.slice(0, 10)}`,
+      status: fixture.venue ? `Starts ${fixture.startISO.slice(0, 10)} Â· ${fixture.venue}` : `Starts ${fixture.startISO.slice(0, 10)}`,
       source: "Local schedule copy",
       score: "Match not started",
       scores: [],
@@ -1101,7 +1101,7 @@ async function scrapeWomensT20WorldCup() {
       name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
       category: ENG_NZ_CATEGORY,
       state: "Upcoming",
-      status: `Starts ${fixture.startISO.slice(0, 10)} · ${fixture.venue}`,
+      status: `Starts ${fixture.startISO.slice(0, 10)} Â· ${fixture.venue}`,
       source: "Local schedule copy",
       score: "Match not started",
       scores: [],
@@ -1123,7 +1123,7 @@ async function scrapeWomensT20WorldCup() {
       name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
       category: WOMENS_CATEGORY,
       state: "Upcoming",
-      status: `Starts ${fixture.startISO.slice(0, 10)} · ${fixture.venue}`,
+      status: `Starts ${fixture.startISO.slice(0, 10)} Â· ${fixture.venue}`,
       source: "Local schedule copy",
       score: "Match not started",
       scores: [],
@@ -1249,3 +1249,4 @@ app.get("/api/test-entitysport", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Vipul AI Dashboard running at http://localhost:${PORT}`);
 });
+
