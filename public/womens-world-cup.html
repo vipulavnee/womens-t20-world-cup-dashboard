@@ -378,18 +378,16 @@ function changeCompetition(value){
 function getDisplayMatches(){
   const matches=getTournamentMatches();
   const live=matches.filter(m=>stateOf(m)==="Live");
-  const finishedLimit=1;
-  const upcomingLimit=1;
-  const finished=matches.filter(m=>stateOf(m)==="Finished").slice(0,finishedLimit);
-  const upcoming=matches.filter(isFutureUpcoming).slice(0,upcomingLimit);
-  const ordered=[...live,...finished,...upcoming];
+  const finished=matches.filter(m=>stateOf(m)==="Finished");
+  const upcoming=matches.filter(isFutureUpcoming);
+  const ordered=[...live,...finished.slice(0,1),...upcoming.slice(0,1),...finished.slice(1),...upcoming.slice(1)];
   const seen=new Set();
   return ordered.filter(m=>{
     const id=String(m.id);
     if(seen.has(id))return false;
     seen.add(id);
     return true;
-  });
+  }).slice(0,3);
 }
 
 function getIndiaTabMatches(){
@@ -1113,7 +1111,10 @@ function renderMain(){
   let matches=activeFilter==="India" ? getIndiaTabMatches() : getDisplayMatches();
 
   if(activeFilter!=="All"&&activeFilter!=="India"){
-    matches=matches.filter(m=>stateOf(m)===activeFilter);
+    const tournamentMatches=getTournamentMatches();
+    matches=activeFilter==="Upcoming"
+      ? tournamentMatches.filter(isFutureUpcoming).slice(0,3)
+      : tournamentMatches.filter(m=>stateOf(m)===activeFilter).slice(0,3);
   }
 
   $("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">Recent & Upcoming</div></div><div class="section">
