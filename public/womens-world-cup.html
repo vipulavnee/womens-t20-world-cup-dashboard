@@ -378,8 +378,8 @@ function changeCompetition(value){
 function getDisplayMatches(){
   const matches=getTournamentMatches();
   const live=matches.filter(m=>stateOf(m)==="Live");
-  const finishedLimit=activeCompetition===TOURNAMENT_CATEGORY ? 2 : 1;
-  const upcomingLimit=2;
+  const finishedLimit=1;
+  const upcomingLimit=1;
   const finished=matches.filter(m=>stateOf(m)==="Finished").slice(0,finishedLimit);
   const upcoming=matches.filter(isFutureUpcoming).slice(0,upcomingLimit);
   const ordered=[...live,...finished,...upcoming];
