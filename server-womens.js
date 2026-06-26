@@ -99,6 +99,38 @@ const WOMENS_FUTURE_FIXTURES = [
     url: "https://www.cricbuzz.com/live-cricket-scores/121961/indw-vs-banw-23rd-match-group-a-icc-womens-t20-world-cup-2026"
   },
   {
+    id: "wwc-2026-26",
+    matchNo: "26th Match Â· Group A",
+    teams: ["Pakistan Women", "Netherlands Women"],
+    startISO: "2026-06-27T09:30:00.000Z",
+    venue: "County Ground, Bristol",
+    url: "https://www.cricbuzz.com/live-cricket-scores/121978/pakw-vs-nedw-26th-match-group-a-icc-womens-t20-world-cup-2026"
+  },
+  {
+    id: "wwc-2026-27",
+    matchNo: "27th Match Â· Group B",
+    teams: ["West Indies Women", "Ireland Women"],
+    startISO: "2026-06-27T13:30:00.000Z",
+    venue: "County Ground, Bristol",
+    url: "https://www.cricbuzz.com/live-cricket-scores/121983/wiw-vs-irew-27th-match-group-b-icc-womens-t20-world-cup-2026"
+  },
+  {
+    id: "wwc-2026-28",
+    matchNo: "28th Match Â· Group B",
+    teams: ["England Women", "New Zealand Women"],
+    startISO: "2026-06-27T17:30:00.000Z",
+    venue: "Kennington Oval, London",
+    url: "https://www.cricbuzz.com/live-cricket-scores/121994/engw-vs-nzw-28th-match-group-b-icc-womens-t20-world-cup-2026"
+  },
+  {
+    id: "wwc-2026-29",
+    matchNo: "29th Match Â· Group A",
+    teams: ["South Africa Women", "Bangladesh Women"],
+    startISO: "2026-06-28T09:30:00.000Z",
+    venue: "Lord's, London",
+    url: "https://www.cricbuzz.com/live-cricket-scores/122005/rsaw-vs-banw-29th-match-group-a-icc-womens-t20-world-cup-2026"
+  },
+  {
     id: "wwc-2026-30",
     matchNo: "30th Match Â· Group A",
     teams: ["Australia Women", "India Women"],
@@ -952,13 +984,18 @@ async function scrapeWomensT20WorldCupBase() {
 async function scrapeWomensT20WorldCup() {
   const baseMatches = await scrapeWomensT20WorldCupBase();
   const categories = [WOMENS_CATEGORY, INDIA_CATEGORY, ENG_NZ_CATEGORY];
+  const isEnglandNewZealandItem = item => {
+    const teams = (item.teams || []).map(team => String(team || "").toLowerCase().replace(/\s+women$/, "").trim());
+    return teams.includes("england") && teams.includes("new zealand");
+  };
   const candidates = categories.flatMap(category => {
     const categoryMatches = baseMatches.filter(item => item.category === category);
     if (category === WOMENS_CATEGORY) {
       const numberOf = item => Number(String(item.slug).match(/(?:^|-)(\d{1,3})(?:st|nd|rd|th)-match/i)?.[1] || 0);
       const indiaWomenMatches = categoryMatches.filter(item => item.teams.includes("India Women"));
+      const liveSort = (a, b) => (isEnglandNewZealandItem(a) ? 0 : 1) - (isEnglandNewZealandItem(b) ? 0 : 1) || numberOf(a) - numberOf(b);
       return [
-        ...categoryMatches.filter(item => item.stateHint === "Live").sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 3),
+        ...categoryMatches.filter(item => item.stateHint === "Live").sort(liveSort).slice(0, 3),
         ...categoryMatches.filter(item => !item.stateHint).sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 3),
         ...categoryMatches.filter(item => item.stateHint === "Finished").sort((a, b) => numberOf(b) - numberOf(a)).slice(0, 2),
         ...categoryMatches.filter(item => item.stateHint === "Upcoming").sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 3),
@@ -967,8 +1004,9 @@ async function scrapeWomensT20WorldCup() {
         ...indiaWomenMatches.filter(item => !item.stateHint).sort((a, b) => numberOf(a) - numberOf(b)).slice(0, 1)
       ];
     }
+    const liveSort = (a, b) => (isEnglandNewZealandItem(a) ? 0 : 1) - (isEnglandNewZealandItem(b) ? 0 : 1);
     return [
-      ...categoryMatches.filter(item => item.stateHint === "Live").slice(0, 3),
+      ...categoryMatches.filter(item => item.stateHint === "Live").sort(liveSort).slice(0, 3),
       ...categoryMatches.filter(item => !item.stateHint).slice(0, 3),
       ...categoryMatches.filter(item => item.stateHint === "Finished").slice(0, 2),
       ...categoryMatches.filter(item => item.stateHint === "Upcoming").slice(0, 2)

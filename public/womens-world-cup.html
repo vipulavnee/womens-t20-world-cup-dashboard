@@ -188,6 +188,10 @@ const LOCAL_SCHEDULE_COPY = [
   ["copy-wwc-19","Women's T20 World Cup","19th Match · Group B","New Zealand Women","Scotland Women","2026-06-23T09:30:00.000Z","County Ground, Bristol",false],
   ["copy-wwc-20","Women's T20 World Cup","20th Match · Group B","Ireland Women","Sri Lanka Women","2026-06-23T13:30:00.000Z","England",false],
   ["copy-wwc-23","Women's T20 World Cup","23rd Match · Group A","India Women","Bangladesh Women","2026-06-25T13:30:00.000Z","Emirates Old Trafford, Manchester",false],
+  ["copy-wwc-26","Women's T20 World Cup","26th Match · Group A","Pakistan Women","Netherlands Women","2026-06-27T09:30:00.000Z","County Ground, Bristol",false],
+  ["copy-wwc-27","Women's T20 World Cup","27th Match · Group B","West Indies Women","Ireland Women","2026-06-27T13:30:00.000Z","County Ground, Bristol",false],
+  ["copy-wwc-28","Women's T20 World Cup","28th Match · Group B","England Women","New Zealand Women","2026-06-27T17:30:00.000Z","Kennington Oval, London",false],
+  ["copy-wwc-29","Women's T20 World Cup","29th Match · Group A","South Africa Women","Bangladesh Women","2026-06-28T09:30:00.000Z","Lord's, London",false],
   ["copy-wwc-30","Women's T20 World Cup","30th Match · Group A","Australia Women","India Women","2026-06-28T13:30:00.000Z","Lord's, London",false],
   ["copy-ire-ind-1","Indian Men","1st T20I","Ireland","India","2026-06-26T14:00:00.000Z","Civil Service Cricket Club, Belfast",false],
   ["copy-ire-ind-2","Indian Men","2nd T20I","Ireland","India","2026-06-28T14:00:00.000Z","Civil Service Cricket Club, Belfast",false],
@@ -314,10 +318,25 @@ function matchPriority(m){
   return 9;
 }
 
+function isEnglandNewZealand(m){
+  const teams=(m?.teams||[]).map(team=>String(team||"").toLowerCase().replace(/\s+women$/,"").trim());
+  return teams.includes("england")&&teams.includes("new zealand");
+}
+
+function livePriority(m){
+  return isEnglandNewZealand(m) ? 0 : 1;
+}
+
 function sortDashboardMatches(matches){
   return [...matches].sort((a,b) => {
     const p = matchPriority(a) - matchPriority(b);
     if(p !== 0) return p;
+
+    if(stateOf(a) === "Live" && stateOf(b) === "Live"){
+      const lp=livePriority(a)-livePriority(b);
+      if(lp!==0)return lp;
+      return parseStartTime(a)-parseStartTime(b);
+    }
 
     if(stateOf(a) === "Finished" && stateOf(b) === "Finished"){
       const aTime=parseStartTime(a).getTime(),bTime=parseStartTime(b).getTime();
@@ -388,7 +407,11 @@ function getIndiaTabMatches(){
 }
 
 function getLiveMatch(){
-  return getTournamentMatches().find(m => stateOf(m) === "Live") || null;
+  return getTournamentMatches().filter(m => stateOf(m) === "Live").sort((a,b)=>{
+    const p=livePriority(a)-livePriority(b);
+    if(p!==0)return p;
+    return parseStartTime(a)-parseStartTime(b);
+  })[0] || null;
 }
 
 function getUpcomingMatch(){
