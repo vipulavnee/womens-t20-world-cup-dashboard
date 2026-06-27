@@ -408,10 +408,12 @@ function getBestByMatchNumber(matches, number){
 }
 
 function getNumberedContextMatches(matches){
-  const anchor=getLiveMatch() || matches.find(isFutureUpcoming) || matches.find(m=>stateOf(m)==="Finished") || null;
+  const finished=[...matches].filter(m=>stateOf(m)==="Finished").sort((a,b)=>matchOrdinal(b)-matchOrdinal(a) || parseStartTime(b)-parseStartTime(a));
+  const upcoming=[...matches].filter(isFutureUpcoming).sort((a,b)=>matchOrdinal(a)-matchOrdinal(b) || parseStartTime(a)-parseStartTime(b));
+  const anchor=getLiveMatch() || finished[0] || upcoming[0] || null;
   const n=matchOrdinal(anchor);
   if(!n)return [];
-  const ordered=[anchor,getBestByMatchNumber(matches,n-1),getBestByMatchNumber(matches,n+1)].filter(Boolean);
+  const ordered=[anchor,getBestByMatchNumber(matches,n-1),getBestByMatchNumber(matches,n+1)];
   const seen=new Set();
   return ordered.filter(m=>{
     const key=String(m.id||`${matchOrdinal(m)}-${m.name}`);
@@ -536,6 +538,11 @@ function upcomingStartLabel(match){
   return Number.isFinite(start.getTime())
     ? start.toLocaleString([], {dateStyle:"medium",timeStyle:"short"})
     : "Time not supplied by API";
+}
+
+function listStatusText(match){
+  if(stateOf(match)==="Upcoming")return upcomingStartLabel(match);
+  return match?.status||match?.score||"--";
 }
 
 function badge(s){
@@ -1145,7 +1152,9 @@ function renderMain(){
     const tournamentMatches=getTournamentMatches();
     matches=activeFilter==="Upcoming"
       ? tournamentMatches.filter(isFutureUpcoming).slice(0,3)
-      : tournamentMatches.filter(m=>stateOf(m)===activeFilter).slice(0,3);
+      : activeFilter==="Finished"
+        ? tournamentMatches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>parseStartTime(b)-parseStartTime(a)).slice(0,3)
+        : tournamentMatches.filter(m=>stateOf(m)===activeFilter).slice(0,3);
   }
 
   $("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">Recent & Upcoming</div></div><div class="section">
@@ -1167,7 +1176,7 @@ function renderMain(){
       <div>
 
 <div class="match-name">${stageLabelHtml(m)} ${womenLabel(m.name)}</div>
-        <div class="result-line"><div class="match-status">${womenLabel(m.status||m.score||"--")}</div>
+        <div class="result-line"><div class="match-status">${womenLabel(listStatusText(m))}</div>
         ${stateOf(m)==="Finished"&&m?.playerOfMatch?`<span class="player-award">Player of the Match: ${m.playerOfMatch}</span>`:""}</div>
       </div>
       ${badge(stateOf(m))}
