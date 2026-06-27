@@ -737,7 +737,9 @@ function requiredRR(match){
   const scores = Array.isArray(match?.scores) ? match.scores : [];
   if(scores.length < 2) return "Second innings yet to start";
 
-  let m=status.match(/need\s+(\d+)\s+(?:runs?\s+)?(?:off|in)\s+(\d+)\s*b/i);
+  const chaseSource=[status,match?.liveDetails?.chase,match?.rawText,match?.score].filter(Boolean).join(" ");
+  let m=chaseSource.match(/need\s+(\d+)\s+(?:runs?\s+)?(?:off|in)\s+(\d+)\s*b/i)
+    ||chaseSource.match(/need\s+(\d+)\s+runs?\s+in\s+(\d+)\s+balls?/i);
   if(m){
     const runsNeeded=parseInt(m[1],10),ballsLeft=parseInt(m[2],10);
     return ballsLeft>0?((runsNeeded*6)/ballsLeft).toFixed(2):"--";
@@ -1209,6 +1211,7 @@ function renderMain(){
   </div>
 </div>`:""}
 
+    <div class="active-filter-label">Showing: ${activeFilter}</div>
     <div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div>
 
     <div class="match-list">${matches.map(m=>`<div class="match-row ${String(m.id)===String(selectedMatchId)?"active":""}" onclick="selectMatch('${m.id}')">
@@ -1248,7 +1251,7 @@ async function loadMatches(){
   }
 
   try{
-    const apiBase = location.protocol === "file:" ? "http://localhost:3001" : "";
+    const apiBase = location.protocol === "file:" ? "http://localhost:3002" : "";
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),25000);
     const res=await fetch(apiBase+"/api/womens-t20-world-cup?t="+Date.now(),{
