@@ -140,6 +140,25 @@ const WOMENS_FUTURE_FIXTURES = [
   }
 ];
 
+const WOMENS_RESULT_FIXTURES = [
+  {
+    id: "wwc-2026-24-result",
+    matchNo: "24th Match Â· Group A",
+    teams: ["South Africa Women", "Netherlands Women"],
+    startISO: "2026-06-25T17:30:00.000Z",
+    venue: "County Ground, Bristol",
+    url: "https://www.cricbuzz.com/live-cricket-scores/121967/rsaw-vs-nedw-24th-match-group-a-icc-womens-t20-world-cup-2026",
+    state: "Finished",
+    status: "South Africa Women won by 88 runs",
+    score: "RSAW 208/1 (20 ov) | NEDW 120/8 (20 ov)",
+    scores: [
+      { team: "RSAW", score: "208/1", overs: "20" },
+      { team: "NEDW", score: "120/8", overs: "20" }
+    ],
+    playerOfMatch: "Tazmin Brits"
+  }
+];
+
 const TEAM_SHORT = {
   "Australia Women": "AUSW", "Bangladesh Women": "BANW",
   "England Women": "ENGW", "India Women": "INDW", "Ireland Women": "IREW",
@@ -1171,7 +1190,24 @@ async function scrapeWomensT20WorldCup() {
       rawText: ""
     }));
 
-  return [...matches, ...scheduledIndiaMatches, ...scheduledTestMatches, ...scheduledWomensMatches].sort((a, b) => {
+  const resultWomensMatches = WOMENS_RESULT_FIXTURES
+    .filter(fixture => !matches.some(match => {
+      if (match.category !== WOMENS_CATEGORY) return false;
+      const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
+      const sameDate = match.startISO && match.startISO.slice(0, 10) === fixture.startISO.slice(0, 10);
+      return sameTeams && sameDate;
+    }))
+    .map(fixture => ({
+      ...fixture,
+      name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
+      category: WOMENS_CATEGORY,
+      source: "Local result copy",
+      liveDetails: { venue: fixture.venue },
+      liveScorecard: null,
+      rawText: fixture.status
+    }));
+
+  return [...matches, ...scheduledIndiaMatches, ...scheduledTestMatches, ...scheduledWomensMatches, ...resultWomensMatches].sort((a, b) => {
     const rank = { Live: 1, Upcoming: 2, Finished: 3, Unknown: 4 };
     return (rank[a.state] || 9) - (rank[b.state] || 9);
   });

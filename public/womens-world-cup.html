@@ -211,6 +211,29 @@ const LOCAL_SCHEDULE_COPY = [
   state:"Upcoming",status:`Starts ${startISO.slice(0,10)} · ${venue}`,source:"Local schedule copy",scores:[],score:"Match not started",liveDetails:{venue}
 }));
 
+const LOCAL_RESULT_COPY = [
+  {
+    id:"copy-wwc-24",
+    category:"Women's T20 World Cup",
+    matchNo:"24th Match · Group A",
+    teams:["South Africa Women","Netherlands Women"],
+    name:"South Africa Women vs Netherlands Women",
+    startISO:"2026-06-25T17:30:00.000Z",
+    venue:"County Ground, Bristol",
+    state:"Finished",
+    status:"South Africa Women won by 88 runs",
+    source:"Local result copy",
+    score:"RSAW 208/1 (20 ov) | NEDW 120/8 (20 ov)",
+    scores:[
+      {team:"RSAW",score:"208/1",overs:"20"},
+      {team:"NEDW",score:"120/8",overs:"20"}
+    ],
+    playerOfMatch:"Tazmin Brits",
+    liveDetails:{venue:"County Ground, Bristol"},
+    rawText:"South Africa Women won by 88 runs"
+  }
+];
+
 function withLocalSchedule(matches){
   const normalized=(Array.isArray(matches)?matches:[]).map(match=>({
     ...match,
@@ -225,6 +248,15 @@ function withLocalSchedule(matches){
       return sameCategory&&sameTeams&&sameDate;
     });
     if(!duplicate)normalized.push(fixture);
+  }
+  for(const result of LOCAL_RESULT_COPY){
+    const duplicate=normalized.some(match=>{
+      const sameCategory=match.category===result.category;
+      const sameTeams=[...(match.teams||[])].sort().join("|")===[...result.teams].sort().join("|");
+      const sameDate=String(match.startISO||"").slice(0,10)===result.startISO.slice(0,10);
+      return sameCategory&&sameTeams&&sameDate;
+    });
+    if(!duplicate)normalized.push(result);
   }
   return normalized;
 }
