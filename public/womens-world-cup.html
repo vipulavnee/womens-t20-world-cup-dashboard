@@ -84,7 +84,8 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 .timer{justify-content:space-between;border:1px solid #00e5ff44;border-radius:14px;padding:10px 12px;margin-bottom:10px;background:#00e5ff12;position:relative}
 .timer:before{content:"COUNTDOWN";position:absolute;top:-9px;left:750px;background:#04111f;color:var(--red);font-size:20px;font-weight:950;padding:2px 6px;border-radius:999px;border:1px solid #00e5ff55}
 .timer small{color:var(--white);font-weight:950}.timer b{font-size:35px}.countdown{font-size:35px;color:var(--green);font-weight:950}
-.filters{display:flex;gap:8px;margin-bottom:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding-bottom:3px;scrollbar-width:thin}
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-width:0}
+.filters{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding-bottom:3px;scrollbar-width:thin;min-width:0}
 .filter{border:1px solid #1d4ed8;background:#071226;color:white;border-radius:10px;padding:8px 12px;font-weight:950;cursor:pointer;white-space:nowrap;flex:0 0 auto;opacity:.82}
 .filter.active{background:linear-gradient(135deg,#1d4ed8,#00a6ff);border-color:#00ff85;color:white;box-shadow:0 0 0 2px #00ff8588,0 0 16px #00ff8588;opacity:1;transform:translateY(-1px)}
 .active-filter-label{display:inline-flex;align-items:center;width:max-content;margin:0 0 5px;padding:2px 8px;border:1px solid #00ff8588;border-radius:999px;background:#00ff8518;color:#00ff85;font-size:12px;font-weight:950}
@@ -111,34 +112,39 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 
 @media(min-width:901px){
   html,body{height:100%;overflow:hidden}
-  .page{height:100dvh;max-height:100dvh;padding:5px 8px;display:flex;flex-direction:column;overflow:hidden}
-  .topbar{min-height:48px;margin-bottom:4px;flex:0 0 auto}
-  .logo{width:38px;height:38px}.title{font-size:30px}.subtitle{font-size:12px}
-  .status,.btn{padding:8px 12px}.competition-select{padding:8px 40px 8px 14px;font-size:16px}
+  .page{height:100dvh;max-height:100dvh;padding:4px 8px;display:flex;flex-direction:column;overflow:hidden}
+  .topbar{min-height:46px;margin-bottom:4px;flex:0 0 auto}
+  .logo{width:36px;height:36px;border-radius:10px}.title{font-size:28px}.subtitle{font-size:12px}
+  .actions{gap:8px}.status,.btn{padding:7px 11px;border-radius:10px}.competition-select{padding:7px 38px 7px 13px;font-size:15px}
   #heroMount,#commandMount{flex:0 0 auto}
-  .hero{height:clamp(238px,32vh,330px);margin-bottom:5px}
+  .hero{height:clamp(225px,31vh,285px);margin-bottom:5px}
   .hero-grid{height:100%}.hero-left,.hero-right{padding:9px 14px;overflow:hidden}
-  .eyebrow{font-size:24px}.test-day-badge{padding:4px 9px;font-size:16px}
-  h1{font-size:34px;margin:6px 0}.hero-main{padding:6px 10px;font-size:24px}
-  .score-title{margin-bottom:5px}.scoreboard,.stats{gap:5px}.stats{margin-top:5px}
-  .score-row{padding:7px 11px}.score-row b,.score-row span{font-size:26px}.score-row small{font-size:15px}
-  .stat{padding:5px 10px}.stat small,.stat b{font-size:17px}
-  .cards{gap:5px;margin-bottom:5px}.card{min-height:56px;padding:8px 11px}.card small{font-size:17px}.card b{font-size:20px}
+  .eyebrow{font-size:22px}.test-day-badge{padding:3px 8px;font-size:15px}
+  h1{font-size:31px;margin:5px 0}.hero-main{padding:6px 10px;font-size:22px;max-width:100%;line-height:1.15}
+  .score-title{margin-bottom:4px}.scoreboard,.stats{gap:4px}.stats{margin-top:4px}
+  .score-row{padding:5px 10px;gap:10px}.score-row b,.score-row span{font-size:21px}.score-row small{font-size:12px}
+  .stat{padding:4px 9px;min-height:30px}.stat small,.stat b{font-size:14px}
+  .cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:5px}
+  .card{min-height:50px;padding:7px 10px;display:flex;align-items:center;gap:7px;overflow:hidden}
+  .card small{font-size:15px;flex:0 0 auto;margin-right:2px}.card b{font-size:19px;line-height:1.12}
   #mainMount{flex:1 1 auto;min-height:0;overflow:hidden}
   #mainMount .panel{height:100%;display:flex;flex-direction:column}
-  #mainMount .panel-head{padding:6px 11px;flex:0 0 auto}.panel-title{font-size:24px}
-  #mainMount .section{padding:7px 10px;display:flex;flex:1;min-height:0;flex-direction:column}
-  .timer{padding:6px 10px;margin-bottom:5px;flex:0 0 auto}.timer:before{left:50%;transform:translateX(-50%);top:-7px;font-size:14px}
-  .timer b,.countdown{font-size:24px}
-  .filters{gap:5px;margin-bottom:5px;flex:0 0 auto}.filter{padding:5px 10px}
+  #mainMount .panel-head{padding:5px 10px;flex:0 0 auto}.panel-title{font-size:22px}
+  #mainMount .section{padding:6px 9px;display:flex;flex:1;min-height:0;flex-direction:column}
+  .timer{padding:6px 10px;margin-bottom:6px;min-height:50px;flex:0 0 auto}.timer:before{left:50%;transform:translateX(-50%);top:-7px;font-size:13px}
+  .timer b,.countdown{font-size:22px}.timer small{font-size:13px}.timer-right{text-align:right;flex:0 0 auto}
+  .filter-bar{margin-bottom:5px;flex:0 0 auto}
+  .active-filter-label{margin:0;padding:4px 8px;font-size:11px;flex:0 0 auto}
+  .filters{gap:5px;flex:1;margin:0}.filter{padding:5px 10px;border-radius:9px;font-size:13px}
   .match-list{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto}
-  .match-row{flex:0 0 auto;min-height:58px;padding:6px 10px;align-items:center}
-  .match-row>div{min-width:0;max-width:calc(100% - 86px)}
-  .stage-label{font-size:18px}
-  .match-name{font-size:16px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .match-status{font-size:12px;line-height:1.2;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .result-line{display:block;min-width:0}
-  .player-award{margin-top:2px;padding:2px 7px;font-size:11px}
+  .match-row{flex:0 0 auto;min-height:54px;padding:6px 10px;align-items:center;overflow:hidden}
+  .match-row>div{min-width:0;max-width:calc(100% - 86px);overflow:hidden}
+  .stage-label{font-size:17px}
+  .match-name{font-size:16px;line-height:1.12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .match-status{font-size:12px;line-height:1.15;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .result-line{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0;overflow:hidden}
+  .result-line .match-status{min-width:0;max-width:60%}
+  .player-award{margin-top:2px;padding:2px 6px;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38%}
   .footer{min-height:13px;margin-top:3px;font-size:11px;flex:0 0 auto}
 }
 
@@ -1267,8 +1273,10 @@ function renderMain(){
   </div>
 </div>`:""}
 
-    <div class="active-filter-label">Showing: ${activeFilter}</div>
-    <div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div>
+    <div class="filter-bar">
+      <div class="active-filter-label">Showing: ${activeFilter}</div>
+      <div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div>
+    </div>
 
     <div class="match-list">${matches.map(m=>`<div class="match-row ${String(m.id)===String(selectedMatchId)?"active":""}" onclick="selectMatch('${m.id}')">
       <div>
