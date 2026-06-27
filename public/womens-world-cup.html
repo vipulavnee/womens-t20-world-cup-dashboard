@@ -377,6 +377,10 @@ function changeCompetition(value){
 
 function getDisplayMatches(){
   const matches=getTournamentMatches();
+  if(activeCompetition===TOURNAMENT_CATEGORY){
+    const numbered=getNumberedContextMatches(matches);
+    if(numbered.length)return numbered;
+  }
   const live=matches.filter(m=>stateOf(m)==="Live");
   const finished=matches.filter(m=>stateOf(m)==="Finished");
   const upcoming=matches.filter(isFutureUpcoming);
@@ -386,6 +390,33 @@ function getDisplayMatches(){
     const id=String(m.id);
     if(seen.has(id))return false;
     seen.add(id);
+    return true;
+  }).slice(0,3);
+}
+
+function matchOrdinal(m){
+  const text=`${getMatchNumber(m)||""} ${m?.matchNo||""} ${m?.url||""} ${m?.name||""}`;
+  const match=String(text).match(/\b(\d{1,3})(?:st|nd|rd|th)?(?:[-\s]*match)?\b/i);
+  const n=Number(match?.[1]);
+  return Number.isFinite(n)&&n>0?n:null;
+}
+
+function getBestByMatchNumber(matches, number){
+  const candidates=matches.filter(m=>matchOrdinal(m)===number);
+  if(!candidates.length)return null;
+  return sortDashboardMatches(candidates)[0] || null;
+}
+
+function getNumberedContextMatches(matches){
+  const anchor=getLiveMatch() || matches.find(isFutureUpcoming) || matches.find(m=>stateOf(m)==="Finished") || null;
+  const n=matchOrdinal(anchor);
+  if(!n)return [];
+  const ordered=[anchor,getBestByMatchNumber(matches,n-1),getBestByMatchNumber(matches,n+1)].filter(Boolean);
+  const seen=new Set();
+  return ordered.filter(m=>{
+    const key=String(m.id||`${matchOrdinal(m)}-${m.name}`);
+    if(seen.has(key))return false;
+    seen.add(key);
     return true;
   }).slice(0,3);
 }
