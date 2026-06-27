@@ -84,9 +84,9 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 .timer{justify-content:space-between;border:1px solid #00e5ff44;border-radius:14px;padding:10px 12px;margin-bottom:10px;background:#00e5ff12;position:relative}
 .timer:before{content:"COUNTDOWN";position:absolute;top:-9px;left:750px;background:#04111f;color:var(--red);font-size:20px;font-weight:950;padding:2px 6px;border-radius:999px;border:1px solid #00e5ff55}
 .timer small{color:var(--white);font-weight:950}.timer b{font-size:35px}.countdown{font-size:35px;color:var(--green);font-weight:950}
-.filters{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
-.filter{border:1px solid #1d4ed8;background:#071226;color:white;border-radius:10px;padding:8px 12px;font-weight:950;cursor:pointer}
-.filter.active{background:#1d4ed8}
+.filters{display:flex;gap:8px;margin-bottom:8px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding-bottom:3px;scrollbar-width:thin}
+.filter{border:1px solid #1d4ed8;background:#071226;color:white;border-radius:10px;padding:8px 12px;font-weight:950;cursor:pointer;white-space:nowrap;flex:0 0 auto}
+.filter.active{background:#1d4ed8;border-color:#00e5ff;box-shadow:0 0 0 1px #00e5ff66,0 0 12px #2563ff88}
 .match-list{border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .match-row{justify-content:space-between;gap:14px;padding:10px 12px;border-bottom:1px solid var(--line);background:#03101d;cursor:pointer}
 .match-row:hover{background:#08203a}
@@ -728,6 +728,11 @@ function requiredRR(match){
     return "Chase not started";
   }
 
+  const apiRequired = String(match?.liveDetails?.requiredRR || "").trim();
+  if(apiRequired && !/first innings/i.test(apiRequired)){
+    return apiRequired;
+  }
+
   const scores = Array.isArray(match?.scores) ? match.scores : [];
   if(scores.length < 2) return "Second innings yet to start";
 
@@ -1178,6 +1183,7 @@ function renderMain(){
   const upcoming=getUpcomingMatch(),filters=activeCompetition===TOURNAMENT_CATEGORY
     ? ["All","Live","India","Upcoming","Finished"]
     : ["All","Live","Upcoming","Finished"];
+  if(!filters.includes(activeFilter))activeFilter="All";
   let matches=activeFilter==="India" ? getIndiaTabMatches() : getDisplayMatches();
 
   if(activeFilter!=="All"&&activeFilter!=="India"){
