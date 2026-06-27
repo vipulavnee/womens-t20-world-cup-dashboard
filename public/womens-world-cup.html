@@ -232,6 +232,24 @@ const LOCAL_RESULT_COPY = [
     playerOfMatch:"Tazmin Brits",
     liveDetails:{venue:"County Ground, Bristol"},
     rawText:"South Africa Women won by 88 runs"
+  },
+  {
+    id:"copy-wwc-25",
+    category:"Women's T20 World Cup",
+    matchNo:"25th Match Â· Group B",
+    teams:["Scotland Women","Sri Lanka Women"],
+    name:"Scotland Women vs Sri Lanka Women",
+    startISO:"2026-06-25T17:30:00.000Z",
+    venue:"England",
+    url:"https://www.cricbuzz.com/live-cricket-scores/121972/scow-vs-slw-25th-match-group-b-icc-womens-t20-world-cup-2026",
+    state:"Finished",
+    status:"Sri Lanka Women won by 3 wickets",
+    source:"Local result copy",
+    score:"Score not available",
+    scores:[],
+    playerOfMatch:"",
+    liveDetails:{venue:"England"},
+    rawText:"Sri Lanka Women won by 3 wickets"
   }
 ];
 
@@ -259,7 +277,39 @@ function withLocalSchedule(matches){
     });
     if(!duplicate)normalized.push(result);
   }
-  return normalized;
+  return dedupeDashboardMatches(normalized);
+}
+
+function fixtureFormatKey(match){
+  const text=`${match?.matchNo||""} ${match?.url||""} ${match?.name||""}`.toLowerCase();
+  if(/\bodi\b/.test(text))return"odi";
+  if(/\bt20i\b/.test(text))return"t20i";
+  if(/\btest\b/.test(text))return"test";
+  return"match";
+}
+
+function dedupeDashboardMatches(list){
+  const byKey=new Map();
+  const stateRank={Live:4,Finished:3,Upcoming:2,Unknown:1};
+  const scoreMatch=match=>{
+    const hasStart=Number.isFinite(Date.parse(match?.startISO||""))?1:0;
+    const hasScore=Array.isArray(match?.scores)&&match.scores.length?1:0;
+    const isLocal=/local/i.test(String(match?.source||""))?1:0;
+    return(stateRank[stateOf(match)]||0)*1000+hasStart*100+hasScore*20+isLocal;
+  };
+
+  for(const match of list){
+    const teams=[...(match?.teams||[])].map(String).sort().join("|");
+    if(!teams)continue;
+    const ordinal=matchOrdinal(match);
+    const date=String(match?.startISO||"").slice(0,10);
+    const stage=ordinal?`${ordinal}-${fixtureFormatKey(match)}`:date||String(match?.id||match?.name||"");
+    const key=`${match?.category||""}|${teams}|${stage}`;
+    const previous=byKey.get(key);
+    if(!previous||scoreMatch(match)>scoreMatch(previous))byKey.set(key,match);
+  }
+
+  return[...byKey.values()];
 }
 
 /* Retained only as an inert historical reference; live tournament data comes from the server. */
@@ -864,9 +914,15 @@ function scoreHTML(match){
         ? `${displayOvers(match,row)||"--"} ov · Batting`
         : "Innings complete"
       : `${displayOvers(match,row)||"--"} ov`;
-    return row
-      ? `<div class="score-row ${cls}"><b>${scoreTeamLabel(t)}</b><span>${row.score}</span><small>${scoreNote}</small></div>`
-      : `<div class="score-row ${cls}"><b>${scoreTeamLabel(t)}</b><span>Innings not started</span><small>Yet to bat</small></div>`;
+    if(row){
+      return `<div class="score-row ${cls}"><b>${scoreTeamLabel(t)}</b><span>${row.score}</span><small>${scoreNote}</small></div>`;
+    }
+
+    if(stateOf(match)==="Finished"){
+      return `<div class="score-row ${cls}"><b>${scoreTeamLabel(t)}</b><span>Score unavailable</span><small>Completed</small></div>`;
+    }
+
+    return `<div class="score-row ${cls}"><b>${scoreTeamLabel(t)}</b><span>Innings not started</span><small>Yet to bat</small></div>`;
   }).join("");
 }
 

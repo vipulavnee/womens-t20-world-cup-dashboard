@@ -156,6 +156,19 @@ const WOMENS_RESULT_FIXTURES = [
       { team: "NEDW", score: "120/8", overs: "20" }
     ],
     playerOfMatch: "Tazmin Brits"
+  },
+  {
+    id: "wwc-2026-25-result",
+    matchNo: "25th Match Â· Group B",
+    teams: ["Scotland Women", "Sri Lanka Women"],
+    startISO: "2026-06-25T17:30:00.000Z",
+    venue: "England",
+    url: "https://www.cricbuzz.com/live-cricket-scores/121972/scow-vs-slw-25th-match-group-b-icc-womens-t20-world-cup-2026",
+    state: "Finished",
+    status: "Sri Lanka Women won by 3 wickets",
+    score: "Score not available",
+    scores: [],
+    playerOfMatch: ""
   }
 ];
 
@@ -1207,10 +1220,50 @@ async function scrapeWomensT20WorldCup() {
       rawText: fixture.status
     }));
 
-  return [...matches, ...scheduledIndiaMatches, ...scheduledTestMatches, ...scheduledWomensMatches, ...resultWomensMatches].sort((a, b) => {
+  return dedupeDashboardMatches([...matches, ...scheduledIndiaMatches, ...scheduledTestMatches, ...scheduledWomensMatches, ...resultWomensMatches]).sort((a, b) => {
     const rank = { Live: 1, Upcoming: 2, Finished: 3, Unknown: 4 };
     return (rank[a.state] || 9) - (rank[b.state] || 9);
   });
+}
+
+function matchOrdinalFromText(match) {
+  const text = `${match?.matchNo || ""} ${match?.url || ""} ${match?.rawText || ""} ${match?.name || ""}`;
+  const found = String(text).match(/(\d+)(?:st|nd|rd|th)[-\s]*match/i)
+    || String(text).match(/\b(\d{1,3})(?:st|nd|rd|th)?\s+(?:t20i|odi|test|match)\b/i);
+  const number = Number(found?.[1]);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function fixtureFormatKey(match) {
+  const text = `${match?.matchNo || ""} ${match?.url || ""} ${match?.name || ""}`.toLowerCase();
+  if (/\bodi\b/.test(text)) return "odi";
+  if (/\bt20i\b/.test(text)) return "t20i";
+  if (/\btest\b/.test(text)) return "test";
+  return "match";
+}
+
+function dedupeDashboardMatches(list) {
+  const byKey = new Map();
+  const stateRank = { Live: 4, Finished: 3, Upcoming: 2, Unknown: 1 };
+  const scoreMatch = match => {
+    const hasStart = Date.parse(match?.startISO || "") ? 1 : 0;
+    const hasScore = Array.isArray(match?.scores) && match.scores.length ? 1 : 0;
+    const isLocal = /local/i.test(String(match?.source || "")) ? 1 : 0;
+    return (stateRank[match?.state] || 0) * 1000 + hasStart * 100 + hasScore * 20 + isLocal;
+  };
+
+  for (const match of list) {
+    const teams = [...(match?.teams || [])].map(String).sort().join("|");
+    if (!teams) continue;
+    const ordinal = matchOrdinalFromText(match);
+    const date = String(match?.startISO || "").slice(0, 10);
+    const stage = ordinal ? `${ordinal}-${fixtureFormatKey(match)}` : date || String(match?.id || match?.name || "");
+    const key = `${match?.category || ""}|${teams}|${stage}`;
+    const previous = byKey.get(key);
+    if (!previous || scoreMatch(match) > scoreMatch(previous)) byKey.set(key, match);
+  }
+
+  return [...byKey.values()];
 }
 
 async function getCachedMatches() {
