@@ -88,11 +88,11 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
 ];
 
 const WOMENS_FUTURE_FIXTURES = [
-  { id: "wwc-2026-19", matchNo: "19th Match Â· Group B", teams: ["New Zealand Women", "Scotland Women"], startISO: "2026-06-23T09:30:00.000Z", venue: "County Ground, Bristol" },
-  { id: "wwc-2026-20", matchNo: "20th Match Â· Group B", teams: ["Ireland Women", "Sri Lanka Women"], startISO: "2026-06-23T13:30:00.000Z", venue: "England" },
+  { id: "wwc-2026-19", matchNo: "19th Match - Group B", teams: ["New Zealand Women", "Scotland Women"], startISO: "2026-06-23T09:30:00.000Z", venue: "County Ground, Bristol" },
+  { id: "wwc-2026-20", matchNo: "20th Match - Group B", teams: ["Ireland Women", "Sri Lanka Women"], startISO: "2026-06-23T13:30:00.000Z", venue: "England" },
   {
     id: "wwc-2026-23",
-    matchNo: "23rd Match Â· Group A",
+    matchNo: "23rd Match - Group A",
     teams: ["India Women", "Bangladesh Women"],
     startISO: "2026-06-25T13:30:00.000Z",
     venue: "Emirates Old Trafford, Manchester",
@@ -100,7 +100,7 @@ const WOMENS_FUTURE_FIXTURES = [
   },
   {
     id: "wwc-2026-26",
-    matchNo: "26th Match Â· Group A",
+    matchNo: "26th Match - Group A",
     teams: ["Pakistan Women", "Netherlands Women"],
     startISO: "2026-06-27T09:30:00.000Z",
     venue: "County Ground, Bristol",
@@ -108,7 +108,7 @@ const WOMENS_FUTURE_FIXTURES = [
   },
   {
     id: "wwc-2026-27",
-    matchNo: "27th Match Â· Group B",
+    matchNo: "27th Match - Group B",
     teams: ["West Indies Women", "Ireland Women"],
     startISO: "2026-06-27T13:30:00.000Z",
     venue: "County Ground, Bristol",
@@ -116,7 +116,7 @@ const WOMENS_FUTURE_FIXTURES = [
   },
   {
     id: "wwc-2026-28",
-    matchNo: "28th Match Â· Group B",
+    matchNo: "28th Match - Group B",
     teams: ["England Women", "New Zealand Women"],
     startISO: "2026-06-27T17:30:00.000Z",
     venue: "Kennington Oval, London",
@@ -124,7 +124,7 @@ const WOMENS_FUTURE_FIXTURES = [
   },
   {
     id: "wwc-2026-29",
-    matchNo: "29th Match Â· Group A",
+    matchNo: "29th Match - Group A",
     teams: ["South Africa Women", "Bangladesh Women"],
     startISO: "2026-06-28T09:30:00.000Z",
     venue: "Lord's, London",
@@ -132,7 +132,7 @@ const WOMENS_FUTURE_FIXTURES = [
   },
   {
     id: "wwc-2026-30",
-    matchNo: "30th Match Â· Group A",
+    matchNo: "30th Match - Group A",
     teams: ["Australia Women", "India Women"],
     startISO: "2026-06-28T13:30:00.000Z",
     venue: "Lord's, London",
@@ -143,7 +143,7 @@ const WOMENS_FUTURE_FIXTURES = [
 const WOMENS_RESULT_FIXTURES = [
   {
     id: "wwc-2026-24-result",
-    matchNo: "24th Match Â· Group A",
+    matchNo: "24th Match - Group A",
     teams: ["South Africa Women", "Netherlands Women"],
     startISO: "2026-06-25T17:30:00.000Z",
     venue: "County Ground, Bristol",
@@ -159,7 +159,7 @@ const WOMENS_RESULT_FIXTURES = [
   },
   {
     id: "wwc-2026-25-result",
-    matchNo: "25th Match Â· Group B",
+    matchNo: "25th Match - Group B",
     teams: ["Scotland Women", "Sri Lanka Women"],
     startISO: "2026-06-25T17:30:00.000Z",
     venue: "England",
@@ -169,6 +169,48 @@ const WOMENS_RESULT_FIXTURES = [
     score: "Score not available",
     scores: [],
     playerOfMatch: ""
+  },
+  {
+    id: "wwc-2026-26-result",
+    matchNo: "26th Match - Group A",
+    teams: ["Pakistan Women", "Netherlands Women"],
+    startISO: "2026-06-27T09:30:00.000Z",
+    venue: "County Ground, Bristol",
+    url: "https://www.cricbuzz.com/live-cricket-scores/121978/pakw-vs-nedw-26th-match-group-a-icc-womens-t20-world-cup-2026",
+    state: "Finished",
+    status: "Pakistan Women won by 37 runs",
+    score: "Score not available",
+    scores: [],
+    playerOfMatch: ""
+  },
+  {
+    id: "wwc-2026-27-result",
+    matchNo: "27th Match - Group B",
+    teams: ["West Indies Women", "Ireland Women"],
+    startISO: "2026-06-27T13:30:00.000Z",
+    venue: "County Ground, Bristol",
+    url: "https://www.cricbuzz.com/live-cricket-scores/121983/wiw-vs-irew-27th-match-group-b-icc-womens-t20-world-cup-2026",
+    state: "Finished",
+    status: "Ireland Women won by 6 wickets",
+    score: "Score not available",
+    scores: [],
+    playerOfMatch: ""
+  },
+  {
+    id: "wwc-2026-28-result",
+    matchNo: "28th Match - Group B",
+    teams: ["New Zealand Women", "England Women"],
+    startISO: "2026-06-27T17:30:00.000Z",
+    venue: "Kennington Oval, London",
+    url: "https://www.cricbuzz.com/live-cricket-scores/121994/engw-vs-nzw-28th-match-group-b-icc-womens-t20-world-cup-2026",
+    state: "Finished",
+    status: "England Women won by 9 wickets",
+    score: "NZW 163/6 (20 ov) | ENGW 164/1 (17.2 ov)",
+    scores: [
+      { team: "NZW", score: "163/6", overs: "20" },
+      { team: "ENGW", score: "164/1", overs: "17.2" }
+    ],
+    playerOfMatch: "Danni Wyatt-Hodge"
   }
 ];
 
@@ -1149,7 +1191,7 @@ async function scrapeWomensT20WorldCup() {
       name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
       category: INDIA_CATEGORY,
       state: "Upcoming",
-      status: fixture.venue ? `Starts ${fixture.startISO.slice(0, 10)} Â· ${fixture.venue}` : `Starts ${fixture.startISO.slice(0, 10)}`,
+      status: fixture.venue ? `Starts ${fixture.startISO.slice(0, 10)} - ${fixture.venue}` : `Starts ${fixture.startISO.slice(0, 10)}`,
       source: "Local schedule copy",
       score: "Match not started",
       scores: [],
@@ -1171,7 +1213,7 @@ async function scrapeWomensT20WorldCup() {
       name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
       category: ENG_NZ_CATEGORY,
       state: "Upcoming",
-      status: `Starts ${fixture.startISO.slice(0, 10)} Â· ${fixture.venue}`,
+      status: `Starts ${fixture.startISO.slice(0, 10)} - ${fixture.venue}`,
       source: "Local schedule copy",
       score: "Match not started",
       scores: [],
@@ -1193,7 +1235,7 @@ async function scrapeWomensT20WorldCup() {
       name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
       category: WOMENS_CATEGORY,
       state: "Upcoming",
-      status: `Starts ${fixture.startISO.slice(0, 10)} Â· ${fixture.venue}`,
+      status: `Starts ${fixture.startISO.slice(0, 10)} - ${fixture.venue}`,
       source: "Local schedule copy",
       score: "Match not started",
       scores: [],

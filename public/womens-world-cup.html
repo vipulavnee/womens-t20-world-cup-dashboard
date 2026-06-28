@@ -242,7 +242,7 @@ const LOCAL_RESULT_COPY = [
   {
     id:"copy-wwc-25",
     category:"Women's T20 World Cup",
-    matchNo:"25th Match Â· Group B",
+    matchNo:"25th Match - Group B",
     teams:["Scotland Women","Sri Lanka Women"],
     name:"Scotland Women vs Sri Lanka Women",
     startISO:"2026-06-25T17:30:00.000Z",
@@ -256,6 +256,63 @@ const LOCAL_RESULT_COPY = [
     playerOfMatch:"",
     liveDetails:{venue:"England"},
     rawText:"Sri Lanka Women won by 3 wickets"
+  },
+  {
+    id:"copy-wwc-26",
+    category:"Women's T20 World Cup",
+    matchNo:"26th Match - Group A",
+    teams:["Pakistan Women","Netherlands Women"],
+    name:"Pakistan Women vs Netherlands Women",
+    startISO:"2026-06-27T09:30:00.000Z",
+    venue:"County Ground, Bristol",
+    url:"https://www.cricbuzz.com/live-cricket-scores/121978/pakw-vs-nedw-26th-match-group-a-icc-womens-t20-world-cup-2026",
+    state:"Finished",
+    status:"Pakistan Women won by 37 runs",
+    source:"Local result copy",
+    score:"Score not available",
+    scores:[],
+    playerOfMatch:"",
+    liveDetails:{venue:"County Ground, Bristol"},
+    rawText:"Pakistan Women won by 37 runs"
+  },
+  {
+    id:"copy-wwc-27",
+    category:"Women's T20 World Cup",
+    matchNo:"27th Match - Group B",
+    teams:["West Indies Women","Ireland Women"],
+    name:"West Indies Women vs Ireland Women",
+    startISO:"2026-06-27T13:30:00.000Z",
+    venue:"County Ground, Bristol",
+    url:"https://www.cricbuzz.com/live-cricket-scores/121983/wiw-vs-irew-27th-match-group-b-icc-womens-t20-world-cup-2026",
+    state:"Finished",
+    status:"Ireland Women won by 6 wickets",
+    source:"Local result copy",
+    score:"Score not available",
+    scores:[],
+    playerOfMatch:"",
+    liveDetails:{venue:"County Ground, Bristol"},
+    rawText:"Ireland Women won by 6 wickets"
+  },
+  {
+    id:"copy-wwc-28",
+    category:"Women's T20 World Cup",
+    matchNo:"28th Match - Group B",
+    teams:["New Zealand Women","England Women"],
+    name:"New Zealand Women vs England Women",
+    startISO:"2026-06-27T17:30:00.000Z",
+    venue:"Kennington Oval, London",
+    url:"https://www.cricbuzz.com/live-cricket-scores/121994/engw-vs-nzw-28th-match-group-b-icc-womens-t20-world-cup-2026",
+    state:"Finished",
+    status:"England Women won by 9 wickets",
+    source:"Local result copy",
+    score:"NZW 163/6 (20 ov) | ENGW 164/1 (17.2 ov)",
+    scores:[
+      {team:"NZW",score:"163/6",overs:"20"},
+      {team:"ENGW",score:"164/1",overs:"17.2"}
+    ],
+    playerOfMatch:"Danni Wyatt-Hodge",
+    liveDetails:{venue:"Kennington Oval, London"},
+    rawText:"England Women won by 9 wickets"
   }
 ];
 
@@ -503,6 +560,9 @@ function getNumberedContextMatches(matches){
   const n=matchOrdinal(anchor);
   if(!n)return [];
   const ordered=[anchor,getBestByMatchNumber(matches,n-1),getBestByMatchNumber(matches,n+1)];
+  if(!ordered[2]){
+    ordered[2]=getBestByMatchNumber(matches,n-2);
+  }
   const seen=new Set();
   return ordered.filter(m=>{
     const key=String(m.id||`${matchOrdinal(m)}-${m.name}`);
