@@ -106,6 +106,7 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
 
 .match-name{font-size:20px;font-weight:950}.match-status{font-size:15px;color:var(--muted);margin-top:4px}
 .result-line,.hero-result-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.row-award{width:max-content;max-width:100%}
 .player-award{display:inline-block;margin-top:4px;padding:3px 8px;border:1px solid #ffd43b66;border-radius:999px;background:#ffd43b18;color:#ffd43b;font-size:13px;font-weight:950}
 .result-line .player-award,.hero-result-line .player-award{margin-top:4px}
 .footer{display:flex;justify-content:space-between;margin-top:8px;color:#94a3b8;font-size:13px}
@@ -137,14 +138,15 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
   .active-filter-label{margin:0;padding:4px 8px;font-size:11px;flex:0 0 auto}
   .filters{gap:5px;flex:1;margin:0}.filter{padding:5px 10px;border-radius:9px;font-size:13px}
   .match-list{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto}
-  .match-row{flex:0 0 auto;min-height:54px;padding:6px 10px;align-items:center;overflow:hidden}
+  .match-row{flex:0 0 auto;min-height:64px;padding:7px 10px;align-items:center;overflow:hidden}
   .match-row>div{min-width:0;max-width:calc(100% - 86px);overflow:hidden}
   .stage-label{font-size:17px}
   .match-name{font-size:16px;line-height:1.12;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .match-status{font-size:12px;line-height:1.15;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .result-line{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0;overflow:hidden}
-  .result-line .match-status{min-width:0;max-width:60%}
-  .player-award{margin-top:2px;padding:2px 6px;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38%}
+  .result-line{display:block;min-width:0;overflow:hidden}
+  .result-line .match-status{min-width:0;max-width:100%}
+  .player-award{margin-top:2px;padding:2px 6px;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .row-award{display:block;width:max-content;max-width:100%;margin-top:3px}
   .footer{min-height:13px;margin-top:3px;font-size:11px;flex:0 0 auto}
 }
 
@@ -1343,7 +1345,7 @@ function renderMain(){
 
 <div class="match-name">${stageLabelHtml(m)} ${womenLabel(m.name)}</div>
         <div class="result-line"><div class="match-status">${womenLabel(listStatusText(m))}</div>
-        ${stateOf(m)==="Finished"&&m?.playerOfMatch?`<span class="player-award">Player of the Match: ${m.playerOfMatch}</span>`:""}</div>
+        ${stateOf(m)==="Finished"&&m?.playerOfMatch?`<span class="player-award row-award">POTM: ${m.playerOfMatch}</span>`:""}</div>
       </div>
       ${badge(stateOf(m))}
     </div>`).join("") || `<div class="match-row"><div>No matches found</div></div>`}</div>
