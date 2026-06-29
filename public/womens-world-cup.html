@@ -480,6 +480,14 @@ function testMatchPreference(m){
   return activeCompetition==="Test Championship" && isEnglandNewZealand(m) ? 0 : 1;
 }
 
+function finishedSortValue(m){
+  if(activeCompetition==="Indian Men"){
+    const n=matchOrdinal(m);
+    if(n)return n * 10000000000000;
+  }
+  return parseStartTime(m).getTime() || 0;
+}
+
 function sortDashboardMatches(matches){
   return [...matches].sort((a,b) => {
     const p = matchPriority(a) - matchPriority(b);
@@ -494,8 +502,8 @@ function sortDashboardMatches(matches){
     if(stateOf(a) === "Finished" && stateOf(b) === "Finished"){
       const fp=testMatchPreference(a)-testMatchPreference(b);
       if(fp!==0)return fp;
-      const aTime=parseStartTime(a).getTime(),bTime=parseStartTime(b).getTime();
-      if(Number.isFinite(aTime)&&Number.isFinite(bTime)&&aTime!==bTime)return bTime-aTime;
+      const aValue=finishedSortValue(a),bValue=finishedSortValue(b);
+      if(aValue!==bValue)return bValue-aValue;
       return stageRank(b) - stageRank(a);
     }
 
@@ -537,7 +545,7 @@ function getDisplayMatches(){
     if(numbered.length)return numbered;
   }
   const live=matches.filter(m=>stateOf(m)==="Live");
-  const finished=matches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>testMatchPreference(a)-testMatchPreference(b)||parseStartTime(b)-parseStartTime(a));
+  const finished=matches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>testMatchPreference(a)-testMatchPreference(b)||finishedSortValue(b)-finishedSortValue(a));
   const upcoming=matches.filter(isFutureUpcoming).sort((a,b)=>parseStartTime(a)-parseStartTime(b));
   const ordered=live.length
     ? [live[0],finished[0],upcoming[0],...live.slice(1),...finished.slice(1),...upcoming.slice(1)]
@@ -593,7 +601,7 @@ function getIndiaTabMatches(){
   const matches=getTournamentMatches().filter(isIndiaMatch);
   const live=matches.filter(m=>stateOf(m)==="Live");
   const upcoming=matches.filter(isFutureUpcoming).slice(0,1);
-  const finished=matches.filter(m=>stateOf(m)==="Finished").slice(0,2);
+  const finished=matches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>finishedSortValue(b)-finishedSortValue(a)).slice(0,2);
   const seen=new Set();
   return [...live,...upcoming,...finished].filter(m=>{
     const id=String(m.id);
@@ -636,15 +644,16 @@ function getPrimaryMatch(){
     return live;
   }
 
-  if(userSelected){
-    const selected = getSelectedMatch();
-    if(selected) return selected;
-    userSelected = false;
-  }
-
   const matches = getTournamentMatches();
   const finished = matches.find(m => stateOf(m) === "Finished");
   const upcoming = getUpcomingMatch();
+
+  if(userSelected){
+    const selected = getSelectedMatch();
+    if(selected && stateOf(selected)!=="Upcoming") return selected;
+    if(selected && !finished) return selected;
+    userSelected = false;
+  }
 
   const fallback = finished || upcoming || matches[0] || null;
 
