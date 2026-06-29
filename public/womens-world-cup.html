@@ -650,6 +650,15 @@ function getPrimaryMatch(){
 
   const autoFollowLatest = activeFilter === "All";
 
+  if(autoFollowLatest && activeCompetition===TOURNAMENT_CATEGORY){
+    const latestWorldCup=getNumberedWorldCupMatches(matches)[0] || finished || upcoming || matches[0] || null;
+    if(latestWorldCup){
+      selectedMatchId=latestWorldCup.id;
+      userSelected=false;
+      return latestWorldCup;
+    }
+  }
+
   if(userSelected && !autoFollowLatest){
     const selected = getSelectedMatch();
     if(selected && stateOf(selected)!=="Upcoming") return selected;
