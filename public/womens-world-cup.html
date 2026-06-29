@@ -648,10 +648,14 @@ function getPrimaryMatch(){
   const finished = matches.find(m => stateOf(m) === "Finished");
   const upcoming = getUpcomingMatch();
 
-  if(userSelected){
+  const autoFollowLatest = activeFilter === "All";
+
+  if(userSelected && !autoFollowLatest){
     const selected = getSelectedMatch();
     if(selected && stateOf(selected)!=="Upcoming") return selected;
     if(selected && !finished) return selected;
+    userSelected = false;
+  }else if(autoFollowLatest){
     userSelected = false;
   }
 
