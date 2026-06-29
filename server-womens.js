@@ -1120,6 +1120,12 @@ async function scrapeWomensT20WorldCup() {
       ? new Date(Number(item.embedded.matchInfo.startDate)).toISOString()
       : "";
     const startISO = detail.startISO || embeddedStart || extractStartISO(`${item.titleText} ${detail.detailText} ${detail.rawText}`);
+    const futureStart = startISO && Date.parse(startISO) > Date.now() + 15 * 60 * 1000;
+    if (futureStart && state === "Finished") {
+      state = "Upcoming";
+      status = /preview/i.test(`${item.titleText} ${detail.detailText}`) ? "Preview" : `Starts ${startISO.slice(0, 10)}`;
+      detail.scores = [];
+    }
 
     let finalScores = detail.scores;
 
