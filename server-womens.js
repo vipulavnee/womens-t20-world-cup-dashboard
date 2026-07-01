@@ -137,6 +137,20 @@ const WOMENS_FUTURE_FIXTURES = [
     startISO: "2026-06-28T13:30:00.000Z",
     venue: "Lord's, London",
     url: "https://www.cricbuzz.com/live-cricket-scores/122011/ausw-vs-indw-30th-match-group-a-icc-womens-t20-world-cup-2026"
+  },
+  {
+    id: "wwc-2026-32",
+    matchNo: "32nd Match - 2nd Semi-final",
+    teams: ["England Women", "South Africa Women"],
+    startISO: "2026-07-02T13:30:00.000Z",
+    venue: "Kennington Oval, London"
+  },
+  {
+    id: "wwc-2026-33",
+    matchNo: "33rd Match - Final",
+    teams: ["Australia Women", "Winner of 2nd Semi-final"],
+    startISO: "2026-07-05T13:30:00.000Z",
+    venue: "Lord's, London"
   }
 ];
 
@@ -211,6 +225,21 @@ const WOMENS_RESULT_FIXTURES = [
       { team: "ENGW", score: "164/1", overs: "17.2" }
     ],
     playerOfMatch: "Danni Wyatt-Hodge"
+  },
+  {
+    id: "wwc-2026-31-result",
+    matchNo: "31st Match - 1st Semi-final",
+    teams: ["Australia Women", "West Indies Women"],
+    startISO: "2026-06-30T13:30:00.000Z",
+    venue: "Kennington Oval, London",
+    state: "Finished",
+    status: "Australia Women won by 8 wickets",
+    score: "WIW 125/7 (20 ov) | AUSW 126/2 (17.4 ov)",
+    scores: [
+      { team: "WIW", score: "125/7", overs: "20" },
+      { team: "AUSW", score: "126/2", overs: "17.4" }
+    ],
+    playerOfMatch: "Beth Mooney"
   }
 ];
 

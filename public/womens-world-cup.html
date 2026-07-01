@@ -202,6 +202,8 @@ const LOCAL_SCHEDULE_COPY = [
   ["copy-wwc-28","Women's T20 World Cup","28th Match · Group B","England Women","New Zealand Women","2026-06-27T17:30:00.000Z","Kennington Oval, London",false],
   ["copy-wwc-29","Women's T20 World Cup","29th Match · Group A","South Africa Women","Bangladesh Women","2026-06-28T09:30:00.000Z","Lord's, London",false],
   ["copy-wwc-30","Women's T20 World Cup","30th Match · Group A","Australia Women","India Women","2026-06-28T13:30:00.000Z","Lord's, London",false],
+  ["copy-wwc-32","Women's T20 World Cup","32nd Match · 2nd Semi-final","England Women","South Africa Women","2026-07-02T13:30:00.000Z","Kennington Oval, London",false],
+  ["copy-wwc-33","Women's T20 World Cup","33rd Match · Final","Australia Women","Winner of 2nd Semi-final","2026-07-05T13:30:00.000Z","Lord's, London",false],
   ["copy-ire-ind-1","Indian Men","1st T20I","Ireland","India","2026-06-26T14:00:00.000Z","Civil Service Cricket Club, Belfast",false],
   ["copy-ire-ind-2","Indian Men","2nd T20I","Ireland","India","2026-06-28T14:00:00.000Z","Civil Service Cricket Club, Belfast",false],
   ["copy-eng-ind-t20-1","Indian Men","1st T20I","England","India","2026-07-01T12:00:00.000Z","England",true],
@@ -315,6 +317,26 @@ const LOCAL_RESULT_COPY = [
     playerOfMatch:"Danni Wyatt-Hodge",
     liveDetails:{venue:"Kennington Oval, London"},
     rawText:"England Women won by 9 wickets"
+  },
+  {
+    id:"copy-wwc-31",
+    category:"Women's T20 World Cup",
+    matchNo:"31st Match - 1st Semi-final",
+    teams:["Australia Women","West Indies Women"],
+    name:"Australia Women vs West Indies Women",
+    startISO:"2026-06-30T13:30:00.000Z",
+    venue:"Kennington Oval, London",
+    state:"Finished",
+    status:"Australia Women won by 8 wickets",
+    source:"Local result copy",
+    score:"WIW 125/7 (20 ov) | AUSW 126/2 (17.4 ov)",
+    scores:[
+      {team:"WIW",score:"125/7",overs:"20"},
+      {team:"AUSW",score:"126/2",overs:"17.4"}
+    ],
+    playerOfMatch:"Beth Mooney",
+    liveDetails:{venue:"Kennington Oval, London"},
+    rawText:"Australia Women won by 8 wickets"
   }
 ];
 
@@ -574,16 +596,17 @@ function getBestByMatchNumber(matches, number){
 }
 
 function getNumberedWorldCupMatches(matches){
-  const live=[...matches].filter(m=>stateOf(m)==="Live").sort((a,b)=>livePriority(a)-livePriority(b)||matchOrdinal(a)-matchOrdinal(b)||parseStartTime(a)-parseStartTime(b));
+  const ordinalValue=m=>matchOrdinal(m)||999;
+  const live=[...matches].filter(m=>stateOf(m)==="Live").sort((a,b)=>livePriority(a)-livePriority(b)||ordinalValue(a)-ordinalValue(b)||parseStartTime(a)-parseStartTime(b));
   const finished=[...matches].filter(m=>stateOf(m)==="Finished").sort((a,b)=>(matchOrdinal(b)||0)-(matchOrdinal(a)||0)||parseStartTime(b)-parseStartTime(a));
-  const upcoming=[...matches].filter(isFutureUpcoming).sort((a,b)=>(matchOrdinal(a)||999)-(matchOrdinal(b)||999)||parseStartTime(a)-parseStartTime(b));
+  const upcoming=[...matches].filter(isFutureUpcoming).sort((a,b)=>ordinalValue(a)-ordinalValue(b)||parseStartTime(a)-parseStartTime(b));
   const anchor=live[0]||null;
   let ordered=[];
   if(anchor){
     const n=matchOrdinal(anchor);
-    ordered=[anchor,n?getBestByMatchNumber(matches,n-1):finished[0],n?getBestByMatchNumber(matches,n+1):upcoming[0],finished[0],upcoming[0]];
+    ordered=[anchor,finished[0],n?getBestByMatchNumber(matches,n+1):upcoming[0],upcoming[0],n?getBestByMatchNumber(matches,n-1):finished[1],finished[1]];
   }else if(finished.length){
-    ordered=[...finished.slice(0,3),...upcoming.slice(0,1)];
+    ordered=[finished[0],upcoming[0],finished[1],...upcoming.slice(1),...finished.slice(2)];
   }else{
     ordered=upcoming.slice(0,3);
   }
