@@ -1,0 +1,603 @@
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+const axios = require("axios");
+
+const app = express();
+const PORT = process.env.PORT || process.env.SPORTS_PORT || 3003;
+const CACHE_TTL_MS = 20000;
+let cache = { data: null, fetchedAt: 0 };
+let fetchPromise = null;
+
+app.use(cors());
+app.use(express.json());
+app.use((req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  next();
+});
+
+app.use(express.static(path.join(__dirname, "public"), {
+  etag: false,
+  lastModified: false,
+  maxAge: 0,
+  setHeaders: res => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+  }
+}));
+
+const http = axios.create({
+  timeout: 18000,
+  headers: {
+    "User-Agent": "Mozilla/5.0 VipulSportsDashboard/1.0",
+    "Accept": "application/json,text/plain,*/*"
+  }
+});
+
+const FOOTBALL_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard";
+const TENNIS_URLS = [
+  "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
+  "https://site.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard"
+];
+const WIMBLEDON_GRAPHQL = "https://www.wimbledon.com/graphql";
+const WIMBLEDON_AUTH = "77d2d900-b41b-4a6a-8700-b98f80bef920";
+const ENABLE_WIMBLEDON_ENRICHMENT = process.env.ENABLE_WIMBLEDON_ENRICHMENT === "1";
+
+function ymd(date) {
+  return date.toISOString().slice(0, 10).replace(/-/g, "");
+}
+
+function dateWindow(daysBack = 2, daysForward = 4) {
+  const out = [];
+  const now = new Date();
+  for (let i = -daysBack; i <= daysForward; i++) {
+    const d = new Date(now);
+    d.setUTCDate(d.getUTCDate() + i);
+    out.push(ymd(d));
+  }
+  return out;
+}
+
+function dateRange(start, end) {
+  const out = [];
+  const d = new Date(`${start}T00:00:00Z`);
+  const last = new Date(`${end}T00:00:00Z`);
+  while (d <= last) {
+    out.push(ymd(d));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
+}
+
+function stateFromEspn(status = {}) {
+  const state = status?.type?.state;
+  if (state === "in") return "Live";
+  if (state === "post") return "Finished";
+  if (state === "pre") return "Upcoming";
+  return "Unknown";
+}
+
+function parseDate(value) {
+  const d = new Date(value || 0);
+  return Number.isFinite(d.getTime()) ? d : new Date(0);
+}
+
+function footballStats(comp, competitorId) {
+  const row = (comp?.competitors || []).find(c => String(c.id) === String(competitorId));
+  const stats = Object.fromEntries((row?.statistics || []).map(s => [s.name, s.displayValue]));
+  return {
+    possession: stats.possessionPct || "--",
+    shots: stats.totalShots || "--",
+    shotsOnTarget: stats.shotsOnTarget || "--",
+    corners: stats.wonCorners || "--"
+  };
+}
+
+function normalizeFootballEvent(event) {
+  const comp = event?.competitions?.[0] || {};
+  const teams = (comp.competitors || []).map(c => ({
+    id: c.id,
+    name: c.team?.displayName || c.team?.shortDisplayName || "Team",
+    short: c.team?.abbreviation || c.team?.shortDisplayName || "TBD",
+    score: c.score ?? "0",
+    winner: Boolean(c.winner),
+    logo: c.team?.logo || "",
+    homeAway: c.homeAway,
+    stats: footballStats(comp, c.id)
+  }));
+  const goals = (comp.details || [])
+    .filter(d => d.scoringPlay)
+    .map(d => {
+      const team = teams.find(t => String(t.id) === String(d.team?.id));
+      const scorer = d.athletesInvolved?.[0]?.displayName || "Goal";
+      return `${d.clock?.displayValue || ""} ${team?.short || ""} - ${scorer}`.trim();
+    });
+
+  const status = comp.status || event.status || {};
+  const state = stateFromEspn(status);
+  const startISO = comp.startDate || comp.date || event.date;
+  const stage = comp.altGameNote || event.season?.slug || "FIFA World Cup";
+  const home = teams.find(t => t.homeAway === "home") || teams[0];
+  const away = teams.find(t => t.homeAway === "away") || teams[1];
+  const scoreText = teams.length >= 2 ? `${home.short} ${home.score} - ${away.score} ${away.short}` : "Score unavailable";
+  const venueName = comp.venue?.fullName || comp.venue?.displayName || event.venue?.displayName || "";
+  const venueAddress = comp.venue?.address || event.venue?.address || {};
+  const venueLocation = [venueAddress.city, venueAddress.state, venueAddress.country].filter(Boolean).join(", ");
+
+  return {
+    id: `football-${event.id}`,
+    sport: "Football",
+    competition: "FIFA World Cup",
+    name: event.name ? event.name.replace(/\s+at\s+/i, " vs ") : teams.map(t => t.name).join(" vs "),
+    shortName: event.shortName ? event.shortName.replace(/\s+@\s+/i, " vs ") : teams.map(t => t.short).join(" vs "),
+    state,
+    status: status.type?.shortDetail || status.type?.detail || status.type?.description || state,
+    clock: status.displayClock || "",
+    period: status.period || "",
+    startISO,
+    venue: [venueName, venueLocation].filter(Boolean).join(" • "),
+    stage,
+    lineupLabel: "",
+    teams,
+    scoreText,
+    detail: goals.length ? goals.join(" • ") : (event.competitions?.[0]?.headlines?.[0]?.shortLinkText || stage),
+    url: event.links?.find(l => l.rel?.includes("summary"))?.href || "",
+    sortTime: parseDate(startISO).getTime()
+  };
+}
+
+function footballRoundCode(stage = "") {
+  const text = String(stage).toLowerCase();
+  if (text.includes("round of 32")) return "R32";
+  if (text.includes("rd of 16") || text.includes("round of 16")) return "R16";
+  if (text.includes("quarter")) return "Q";
+  if (text.includes("semi")) return "S";
+  if (text.includes("3rd") || text.includes("third")) return "3P";
+  if (text.includes("final")) return "Final";
+  if (text.includes("group")) return "G";
+  return "M";
+}
+
+function footballRoundLabel(code = "") {
+  if (code === "R32") return "Round of 32";
+  if (code === "R16") return "Round of 16";
+  if (code === "Q") return "Quarterfinal";
+  if (code === "S") return "Semifinal";
+  if (code === "3P") return "Third Place";
+  if (code === "Final") return "Final";
+  if (code === "G") return "Group Stage";
+  return "Main Event";
+}
+
+function footballPhraseToCode(phrase = "") {
+  const text = String(phrase).toLowerCase();
+  if (text.includes("round of 32")) return "R32";
+  if (text.includes("round of 16")) return "R16";
+  if (text.includes("quarter")) return "Q";
+  if (text.includes("semi")) return "S";
+  if (text.includes("third")) return "3P";
+  if (text.includes("final")) return "Final";
+  return "";
+}
+
+function isMainEventFootball(event) {
+  const text = [
+    event.name,
+    event.shortName,
+    event.season?.slug,
+    event.competitions?.[0]?.altGameNote,
+    event.competitions?.[0]?.notes?.map(n => n.text).join(" ")
+  ].filter(Boolean).join(" ").toLowerCase();
+  return !text.includes("qualifying") && !text.includes("qualification");
+}
+
+function withFootballLineupLabels(events) {
+  const grouped = new Map();
+  const tournamentOrder = [...events].sort((a, b) => a.sortTime - b.sortTime || String(a.name).localeCompare(String(b.name)));
+  tournamentOrder.forEach((event, index) => {
+    event.matchNumber = index + 1;
+  });
+
+  for (const event of events) {
+    const code = footballRoundCode(event.stage);
+    event.roundCode = code;
+    const key = `${code}|${event.stage}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(event);
+  }
+
+  for (const [key, list] of grouped.entries()) {
+    const code = key.split("|")[0];
+    list.sort((a, b) => a.sortTime - b.sortTime || String(a.name).localeCompare(String(b.name)));
+    list.forEach((event, index) => {
+      const roundName = footballRoundLabel(code);
+      event.roundMatchNumber = index + 1;
+      event.roundLabel = roundName;
+      if (code === "Final") event.lineupLabel = `Match No ${event.matchNumber} • Final`;
+      else if (code === "3P") event.lineupLabel = `Match No ${event.matchNumber} • Third Place Match`;
+      else event.lineupLabel = `Match No ${event.matchNumber} • ${roundName} Match ${index + 1}`;
+    });
+  }
+
+  const matchNoByRound = new Map();
+  for (const event of events) {
+    if (event.roundCode && event.roundMatchNumber) {
+      matchNoByRound.set(`${event.roundCode}:${event.roundMatchNumber}`, event.matchNumber);
+    }
+  }
+
+  for (const event of events) {
+    event.lineupName = String(event.name || "").replace(
+      /(Round of 32|Round of 16|Quarterfinal|Semifinal|Final)\s+(\d+)\s+(Winner|Loser)/gi,
+      (full, phrase, roundMatchNo, resultType) => {
+        const code = footballPhraseToCode(phrase);
+        const matchNo = matchNoByRound.get(`${code}:${Number(roundMatchNo)}`);
+        return matchNo ? `${resultType} of Match No ${matchNo}` : `${resultType} of ${phrase} Match No ${roundMatchNo}`;
+      }
+    );
+  }
+
+  return events;
+}
+
+function tennisName(c) {
+  return c?.athlete?.displayName || c?.roster?.displayName || c?.athlete?.shortName || c?.roster?.shortDisplayName || "TBD";
+}
+
+function tennisShort(c) {
+  return c?.athlete?.shortName || c?.roster?.shortDisplayName || tennisName(c);
+}
+
+function tennisCountry(c) {
+  return c?.athlete?.flag?.alt || c?.roster?.flag?.alt || c?.athlete?.country?.abbreviation || c?.roster?.country?.abbreviation || "";
+}
+
+function tennisScore(c) {
+  const sets = (c?.linescores || []).map(s => {
+    const base = String(s.value ?? "");
+    return s.tiebreak ? `${base}(${s.tiebreak})` : base;
+  }).filter(Boolean);
+  return sets.length ? sets.join(" ") : "--";
+}
+
+function tennisSets(c) {
+  return (c?.linescores || []).map((s, index) => ({
+    set: index + 1,
+    value: s.value ?? "",
+    display: s.tiebreak ? `${s.value ?? ""}(${s.tiebreak})` : String(s.value ?? "")
+  })).filter(s => s.display !== "");
+}
+
+function tennisPersonKey(name = "") {
+  return String(name)
+    .toLowerCase()
+    .replace(/\[[^\]]+\]|\([^)]*\)/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function tennisPairKeys(names = []) {
+  const direct = names.map(tennisPersonKey).filter(Boolean).join("|");
+  const reverse = names.map(tennisPersonKey).filter(Boolean).reverse().join("|");
+  return [direct, reverse].filter(Boolean);
+}
+
+function isCertificateError(err) {
+  return ["CERT_HAS_EXPIRED", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "SELF_SIGNED_CERT_IN_CHAIN"]
+    .includes(err?.code);
+}
+
+async function fetchWimbledonLiveScores() {
+  const query = `
+    query LiveScores {
+      liveScores {
+        matches {
+          matchId
+          eventName
+          status
+          statusCode
+          score {
+            gameScore
+            tennisSets {
+              set
+              team1 { score scoreDisplay tiebreak tiebreakDisplay }
+              team2 { score scoreDisplay tiebreak tiebreakDisplay }
+            }
+          }
+          team1 { displayNameA seed won totalSetsWon }
+          team2 { displayNameA seed won totalSetsWon }
+        }
+      }
+    }
+  `;
+  try {
+    const res = await http.post(WIMBLEDON_GRAPHQL, {
+      operationName: "LiveScores",
+      query,
+      variables: {}
+    }, {
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": WIMBLEDON_AUTH
+      },
+      timeout: 15000
+    });
+    const map = new Map();
+    for (const match of res.data?.data?.liveScores?.matches || []) {
+      const names = [
+        match.team1?.[0]?.displayNameA,
+        match.team2?.[0]?.displayNameA
+      ];
+      const gameScore = match.score?.gameScore || [];
+      const payload = {
+        wimbledonMatchId: match.matchId,
+        wimbledonStatus: match.status,
+        pointScore: gameScore?.some(v => v !== null && v !== undefined) ? gameScore.map(v => v ?? "").join(" - ") : "",
+        playerPoints: [gameScore?.[0] ?? "", gameScore?.[1] ?? ""]
+      };
+      for (const key of tennisPairKeys(names)) map.set(key, payload);
+    }
+    return map;
+  } catch (err) {
+    if (isCertificateError(err)) {
+      return new Map();
+    } else {
+      console.warn("Wimbledon live score enrichment failed:", err.message);
+    }
+    return new Map();
+  }
+}
+
+function seededPlayerName(player) {
+  return player.seed ? `[${player.seed}] ${player.name}` : player.name;
+}
+
+function seededPlayerShort(player) {
+  return player.seed ? `[${player.seed}] ${player.short}` : player.short;
+}
+
+function normalizeTennisCompetition(comp, event, sourceLeague) {
+  const players = (comp.competitors || []).map(c => ({
+    id: c.id,
+    name: tennisName(c),
+    short: tennisShort(c),
+    score: tennisScore(c),
+    sets: tennisSets(c),
+    winner: Boolean(c.winner),
+    seed: c.curatedRank?.current || "",
+    country: tennisCountry(c)
+  }));
+  const seededNames = players.map(seededPlayerName);
+  const seededShortNames = players.map(seededPlayerShort);
+  const status = comp.status || {};
+  const state = stateFromEspn(status);
+  const type = comp.type?.text || event?.grouping?.displayName || "Singles";
+  const round = comp.round?.displayName || "";
+  const note = comp.notes?.[0]?.text || "";
+
+  return {
+    id: `tennis-${sourceLeague}-${comp.id}`,
+    sport: "Tennis",
+    competition: "Wimbledon",
+    name: seededNames.join(" vs "),
+    shortName: seededShortNames.join(" vs "),
+    state,
+    status: status.type?.shortDetail || status.type?.detail || status.type?.description || state,
+    clock: "",
+    startISO: comp.startDate || comp.date || event.date,
+    venue: [comp.venue?.court, comp.venue?.fullName].filter(Boolean).join(" • "),
+    stage: [type, round].filter(Boolean).join(" • "),
+    lineupLabel: tennisRoundCode(round, type),
+    teams: players,
+    scoreText: players.map(p => `${p.short} ${p.score}`).join(" | "),
+    detail: note || [type, round].filter(Boolean).join(" • "),
+    url: "",
+    sortTime: parseDate(comp.startDate || comp.date || event.date).getTime()
+  };
+}
+
+function isMainDrawTennis(comp, event = {}) {
+  const text = [
+    comp.round?.displayName,
+    comp.type?.text,
+    comp.notes?.map(n => n.text).join(" "),
+    event.name,
+    event.shortName,
+    event.grouping?.displayName
+  ].filter(Boolean).join(" ").toLowerCase();
+  return !text.includes("qualifying") && !text.includes("qualification");
+}
+
+function tennisRoundCode(round = "", type = "") {
+  const text = `${round} ${type}`.toLowerCase();
+  if (text.includes("quarter")) return "QF";
+  if (text.includes("semi")) return "SF";
+  if (text.includes("final")) return "Final";
+  const found = text.match(/round\s+(\d+)/i);
+  if (found) return `R${found[1]}`;
+  return "";
+}
+
+function tennisDrawCode(stage = "") {
+  const text = String(stage).toLowerCase();
+  if (text.includes("women") && text.includes("single")) return "Ladies' Singles";
+  if (text.includes("men") && text.includes("single")) return "Gentlemen's Singles";
+  if (text.includes("women") && text.includes("double")) return "Ladies' Doubles";
+  if (text.includes("men") && text.includes("double")) return "Gentlemen's Doubles";
+  if (text.includes("mixed")) return "Mixed Doubles";
+  return "Tennis";
+}
+
+function tennisRoundLabel(code = "") {
+  if (code === "QF") return "Quarterfinal";
+  if (code === "SF") return "Semifinal";
+  if (code === "Final") return "Final";
+  const round = String(code).match(/^R(\d+)$/);
+  return round ? `Round ${round[1]}` : "Match";
+}
+
+function withTennisLineupLabels(events) {
+  const grouped = new Map();
+  for (const event of events) {
+    const base = tennisRoundCode(event.stage, event.stage) || "M";
+    const draw = tennisDrawCode(event.stage);
+    const key = `${draw}|${base}|${event.stage}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(event);
+  }
+
+  for (const [key, list] of grouped.entries()) {
+    const [draw, base] = key.split("|");
+    list.sort((a, b) => a.sortTime - b.sortTime || String(a.name).localeCompare(String(b.name)));
+    list.forEach((event, index) => {
+      const roundLabel = tennisRoundLabel(base);
+      event.drawName = draw;
+      event.roundCode = base;
+      event.roundLabel = roundLabel;
+      event.roundMatchNumber = index + 1;
+      if (base === "Final") event.lineupLabel = `${draw} • Final`;
+      else event.lineupLabel = `${draw} • ${roundLabel} • Match No ${index + 1}`;
+    });
+  }
+
+  return events;
+}
+
+async function fetchFootball() {
+  const dates = dateRange("2026-06-11", "2026-07-19");
+  const responses = await Promise.allSettled(dates.map(date => http.get(`${FOOTBALL_URL}?dates=${date}`)));
+  const events = [];
+  for (const result of responses) {
+    if (result.status !== "fulfilled") continue;
+    for (const event of result.value.data?.events || []) {
+      if (!isMainEventFootball(event)) continue;
+      events.push(normalizeFootballEvent(event));
+    }
+  }
+  return withFootballLineupLabels(dedupe(events));
+}
+
+async function fetchTennis() {
+  const [scoreResults, wimbledonScores] = await Promise.all([
+    Promise.allSettled(TENNIS_URLS.map(url => http.get(url))),
+    ENABLE_WIMBLEDON_ENRICHMENT ? fetchWimbledonLiveScores() : Promise.resolve(new Map())
+  ]);
+  const rows = [];
+  for (const result of scoreResults) {
+    if (result.status !== "fulfilled") continue;
+    const league = result.value.data?.leagues?.[0]?.slug || "tennis";
+    for (const event of result.value.data?.events || []) {
+      if (!/wimbledon/i.test(event.name || event.shortName || "")) continue;
+      for (const grouping of event.groupings || []) {
+        for (const comp of grouping.competitions || []) {
+          if (!isMainDrawTennis(comp, { ...event, grouping: grouping.grouping })) continue;
+          rows.push(normalizeTennisCompetition(comp, { ...event, grouping: grouping.grouping }, league));
+        }
+      }
+    }
+  }
+  for (const row of rows) {
+    const keys = tennisPairKeys((row.teams || []).map(t => t.short || t.name));
+    const enrichment = keys.map(key => wimbledonScores.get(key)).find(Boolean);
+    if (enrichment) {
+      row.pointScore = enrichment.pointScore;
+      row.wimbledonStatus = enrichment.wimbledonStatus;
+      row.teams = (row.teams || []).map((team, index) => ({
+        ...team,
+        point: enrichment.playerPoints?.[index] ?? ""
+      }));
+    }
+  }
+  return withTennisLineupLabels(dedupe(rows));
+}
+
+function dedupe(items) {
+  const map = new Map();
+  for (const item of items) {
+    const key = `${item.sport}|${item.name}|${item.startISO}|${item.stage}`;
+    const prev = map.get(key);
+    if (!prev || stateRank(item.state) > stateRank(prev.state)) map.set(key, item);
+  }
+  return [...map.values()];
+}
+
+function stateRank(state) {
+  return { Live: 3, Upcoming: 2, Finished: 1, Unknown: 0 }[state] || 0;
+}
+
+function sortDashboard(items) {
+  return [...items].sort((a, b) => {
+    const live = (b.state === "Live") - (a.state === "Live");
+    if (live) return live;
+    const upcomingA = a.state === "Upcoming";
+    const upcomingB = b.state === "Upcoming";
+    if (upcomingA && upcomingB) return a.sortTime - b.sortTime;
+    if (upcomingA !== upcomingB) return upcomingA ? -1 : 1;
+    return b.sortTime - a.sortTime;
+  });
+}
+
+async function fetchAll() {
+  const [football, tennis] = await Promise.all([fetchFootball(), fetchTennis()]);
+  const data = sortDashboard([...football, ...tennis]);
+  return {
+    data,
+    meta: {
+      total: data.length,
+      football: football.length,
+      tennis: tennis.length,
+      live: data.filter(x => x.state === "Live").length,
+      upcoming: data.filter(x => x.state === "Upcoming").length,
+      finished: data.filter(x => x.state === "Finished").length
+    }
+  };
+}
+
+async function getCached() {
+  const now = Date.now();
+  if (cache.data && now - cache.fetchedAt < CACHE_TTL_MS) {
+    return { ...cache.data, cached: true };
+  }
+  if (!fetchPromise) {
+    fetchPromise = fetchAll()
+      .then(data => {
+        cache = { data, fetchedAt: Date.now() };
+        return data;
+      })
+      .finally(() => { fetchPromise = null; });
+  }
+  try {
+    return { ...(await fetchPromise), cached: false };
+  } catch (err) {
+    if (cache.data) return { ...cache.data, cached: true, stale: true, error: err.message };
+    throw err;
+  }
+}
+
+app.get("/api/sports", async (req, res) => {
+  try {
+    const payload = await getCached();
+    res.json({ status: "success", fetchedAt: new Date(cache.fetchedAt || Date.now()).toISOString(), ...payload });
+  } catch (err) {
+    res.status(502).json({ status: "error", error: err.message });
+  }
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", app: "Vipul Sports Dashboard", port: String(PORT), routes: ["/api/sports", "/api/health"] });
+});
+
+app.get("/", (req, res) => {
+  res.redirect("/other-sports-dashboard.html");
+});
+
+app.get("/sports-dashboard.html", (req, res) => {
+  res.redirect("/other-sports-dashboard.html");
+});
+
+app.listen(PORT, () => {
+  console.log(`Other sports dashboard running on http://localhost:${PORT}/other-sports-dashboard.html`);
+});

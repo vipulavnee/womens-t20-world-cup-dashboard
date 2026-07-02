@@ -1,0 +1,341 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vipul's Sports Dashboard</title>
+<style>
+:root{--bg:#020817;--panel:#071226;--line:#12345b;--text:#f8fafc;--muted:#cbd5e1;--green:#00ff85;--blue:#2563ff;--cyan:#00e5ff;--orange:#ff7b00;--red:#ff3b5c;--purple:#8b5cf6;--yellow:#ffd43b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+.page{max-width:1600px;margin:auto;padding:6px 8px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.topbar,.brand,.actions,.score-row,.stat,.cards,.timer,.match-row,.filter-bar{display:flex;align-items:center}
+.topbar{justify-content:space-between;margin-bottom:5px}
+.brand{gap:12px}.logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#2563ff,#00e5ff);display:grid;place-items:center;font-weight:950}
+.title{font-size:30px;font-weight:950;letter-spacing:-.04em}.subtitle{font-size:12px;color:var(--muted)}
+.actions{gap:8px}.status,.btn,.select{border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-weight:950}
+.status{background:#04111f;color:var(--green)}.status.warn{color:var(--orange)}.status.bad{color:var(--red)}
+.btn{background:#1d4ed8;color:#fff;cursor:pointer}.select{min-width:260px;background:#071226;color:#fff;border:3px solid var(--yellow);box-shadow:0 0 0 3px #ffb00022,0 0 22px #ffb00080}
+.hero{height:clamp(230px,32vh,290px);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:5px;background:linear-gradient(rgba(0,0,0,.25),rgba(0,0,0,.45)),url('./stadium.png') center/cover no-repeat}
+.hero-grid{height:100%;display:grid;grid-template-columns:1fr .9fr}.hero-left,.hero-right{padding:12px 16px;background:rgba(0,0,0,.34);overflow:hidden}
+.eyebrow{font-size:23px;color:var(--green);font-weight:950}.event-title{font-size:34px;line-height:1.02;margin:8px 0;font-weight:950;letter-spacing:-.04em}
+.hero-main{display:inline-block;background:rgba(4,17,31,.84);border:1px solid #ffffff22;border-radius:12px;padding:7px 11px;font-size:24px;font-weight:950;max-width:100%}
+.score-title{font-weight:950;margin-bottom:5px}.scoreboard{display:grid;gap:6px}.score-row{justify-content:space-between;gap:10px;border:1px solid #ffffff22;border-radius:13px;padding:7px 11px;background:linear-gradient(135deg,#ff007f88,#003dcb88)}
+.score-row b,.score-row span{font-size:26px;font-weight:950;color:#fff}.score-row span{margin-left:auto;min-width:72px;text-align:right}.score-row small{font-size:13px;font-weight:950;color:#fff}
+.team-football{background:linear-gradient(135deg,#0891b2,#1d4ed8)!important}.team-tennis{background:linear-gradient(135deg,#84cc16,#16a34a)!important}
+.tennis-score-table{border:1px solid #ffffff28;border-radius:13px;overflow:hidden;background:rgba(4,17,31,.72)}
+.tennis-score-head,.tennis-score-player{display:grid;grid-template-columns:minmax(150px,1fr) repeat(var(--sets,1),48px) 66px;align-items:center;gap:5px;padding:5px 7px}
+.tennis-score-head{background:#00000044;color:#cbd5e1;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
+.tennis-score-player{border-top:1px solid #ffffff18}
+.tennis-score-player.match-winner{background:linear-gradient(90deg,#00ff8526,#1d4ed826)}
+.tennis-score-player.match-winner .tennis-player-name{color:#00ff85}
+.tennis-player-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:17px;font-weight:950;color:#fff}
+.tennis-set-cell,.tennis-sets-won{display:grid;place-items:center;min-height:32px;border-radius:9px;background:#0b172d;color:#fff;font-size:20px;font-weight:950;border:1px solid #ffffff18}
+.tennis-set-cell.set-leader{background:#00ff8524;border-color:#00ff85;color:#00ff85}
+.tennis-set-cell.current-set{box-shadow:inset 0 0 0 2px #ffd43b77}
+.tennis-sets-won{background:#1d4ed833;border-color:#60a5fa;color:#dbeafe}
+.stats{display:grid;gap:5px;margin-top:6px}.stat{justify-content:space-between;border:1px solid #ffffff22;border-radius:11px;padding:5px 10px;background:rgba(4,17,31,.86)}
+.stat small{font-size:15px;color:var(--muted);font-weight:950}.stat b{font-size:15px;text-align:right}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:5px}.cards.football-cards,.cards.tennis-cards{grid-template-columns:1.1fr .9fr}.card{border:1px solid var(--line);border-radius:15px;background:rgba(4,17,31,.95);padding:8px 11px;min-height:52px;overflow:hidden}.card small{font-size:15px;color:var(--muted);font-weight:950;margin-right:6px}.card b{font-size:19px}
+.green{border-color:#00ff85!important}.blue{border-color:#2563ff!important}.orange{border-color:#ff7b00!important}.purple{border-color:#8b5cf6!important}.red{border-color:#ff3b5c!important}
+.panel{border:1px solid var(--line);border-radius:18px;background:rgba(4,17,31,.94);overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0}
+.panel-head{padding:7px 12px;border-bottom:1px solid var(--line)}.panel-title{font-size:23px;font-weight:950}
+.section{padding:7px 10px;display:flex;flex-direction:column;flex:1;min-height:0}
+.timer{justify-content:space-between;border:1px solid #00e5ff44;border-radius:14px;padding:7px 10px;margin-bottom:6px;background:#00e5ff12;position:relative;min-height:52px}
+.timer:before{content:"NEXT";position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#04111f;color:var(--red);font-size:13px;font-weight:950;padding:2px 7px;border-radius:999px;border:1px solid #00e5ff55}
+.timer b,.countdown{font-size:23px}.countdown{color:var(--green);font-weight:950}.timer small{font-weight:950;color:#dbeafe}
+.filter-bar{gap:7px;margin-bottom:6px}.active-filter-label{padding:4px 8px;border-radius:999px;background:#00ff8518;border:1px solid #00ff8588;color:var(--green);font-size:11px;font-weight:950;white-space:nowrap}
+.filters{display:flex;gap:5px;overflow-x:auto;min-width:0}.filter{border:1px solid #1d4ed8;background:#071226;color:white;border-radius:9px;padding:5px 10px;font-weight:950;cursor:pointer;white-space:nowrap}.filter.active{background:linear-gradient(135deg,#1d4ed8,#00a6ff);border-color:#00ff85;box-shadow:0 0 0 2px #00ff8588}
+.match-list{border:1px solid var(--line);border-radius:14px;overflow-y:auto;flex:1;min-height:0}.match-row{justify-content:space-between;gap:12px;min-height:62px;padding:7px 10px;border-bottom:1px solid var(--line);background:#03101d;cursor:pointer}.match-row.active{background:#0b2a4a;border-left:2px solid var(--cyan)}.match-row:last-child{border-bottom:0}
+.match-row.finished-row{background:linear-gradient(90deg,#0b2a4a,#03101d)}
+.result-line{display:inline-flex;align-items:center;gap:8px;color:#fff;font-weight:950}
+.result-winner{color:#00ff85;font-size:1.05em}
+.result-score{display:inline-flex;padding:2px 8px;border-radius:999px;background:#ffd43b;color:#1a1200;font-weight:950}
+.result-method{color:#ffb000;font-weight:950}
+.blink-result{animation:blinkResult 1.1s ease-in-out infinite}
+@keyframes blinkResult{0%,100%{filter:brightness(1);opacity:1}50%{filter:brightness(1.8);opacity:.58}}
+.match-row>div{min-width:0;max-width:calc(100% - 100px);overflow:hidden}.match-name{font-size:17px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.match-status{font-size:12px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lineup-label{display:inline-flex;align-items:center;justify-content:center;min-width:64px;margin-right:8px;padding:4px 9px;border-radius:999px;border:2px solid #ffd43b;background:#3a2d00;color:#ffd43b;font-size:.82em;font-weight:950;vertical-align:middle;letter-spacing:.02em;box-shadow:0 0 12px #ffd43b55}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;margin-right:5px;padding:1px 6px;border-radius:999px;background:#ffd43b;color:#1a1200;border:1px solid #fff1a8;font-size:.72em;font-weight:950;vertical-align:middle;box-shadow:0 0 10px #ffd43b66}
+.country-badge{display:inline-flex;margin-left:6px;padding:1px 6px;border-radius:999px;border:1px solid #38bdf899;background:#38bdf81f;color:#bae6fd;font-size:.68em;font-weight:950;vertical-align:middle}
+.star-tag{display:inline-flex;margin-left:7px;padding:2px 7px;border-radius:999px;border:1px solid #00ff8599;background:#00ff8520;color:#00ff85;font-size:.72em;font-weight:950;vertical-align:middle}
+.pill{border-radius:999px;padding:6px 10px;font-weight:950;font-size:12px;background:#0b172d}.live{color:var(--green)}.upcoming{color:var(--orange)}.finished{color:#ff8094}
+.footer{display:flex;justify-content:space-between;margin-top:4px;color:#94a3b8;font-size:11px}
+@media(max-width:900px){.page{height:auto;overflow:auto}.topbar,.actions{align-items:flex-start;flex-direction:column}.select{width:100%}.hero{height:auto}.hero-grid,.cards{grid-template-columns:1fr}.event-title{font-size:28px}.score-row b,.score-row span{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="brand"><div class="logo">S</div><div><div class="title">Vipul's Sports Dashboard</div><div class="subtitle" id="subtitle">Football World Cup + Wimbledon</div></div></div>
+    <div class="actions">
+      <select class="select" id="sportSelect" onchange="changeSport(this.value)">
+        <option value="Football">Football World Cup</option>
+        <option value="TennisMen">Wimbledon Gentlemen's Singles</option>
+        <option value="TennisWomen">Wimbledon Ladies' Singles</option>
+      </select>
+      <div class="status warn" id="apiStatus">● Loading</div>
+      <button class="btn" onclick="loadData()">↻ Refresh</button>
+    </div>
+  </div>
+  <div id="heroMount"></div>
+  <div id="cardsMount"></div>
+  <div id="mainMount"></div>
+  <div class="footer"><div>Auto-refresh every 20 seconds</div><div id="updatedAt">Updated: --</div></div>
+</div>
+
+<script>
+const params=new URLSearchParams(location.search);
+let allEvents=[],activeSport=params.get("sport")||"Football",activeFilter=params.get("filter")||"Upcoming",selectedId="",userSelected=false,inFlight=false;
+if(activeSport==="All")activeSport="Football";
+if(activeFilter==="All")activeFilter="Upcoming";
+const $=id=>document.getElementById(id);
+const apiBase=location.protocol==="file:"?"http://localhost:3003":"";
+const FOOTBALL_STARS=["Brazil","Argentina","Germany","France","Spain","England","Italy","Uruguay"];
+const TENNIS_STARS=[
+  "Novak Djokovic","Jannik Sinner","Carlos Alcaraz","Daniil Medvedev","Stan Wawrinka","Marin Cilic","Dominic Thiem","Rafael Nadal","Andy Murray",
+  "Iga Swiatek","Aryna Sabalenka","Coco Gauff","Elena Rybakina","Barbora Krejcikova","Emma Raducanu","Naomi Osaka","Bianca Andreescu","Sofia Kenin",
+  "Sloane Stephens","Jelena Ostapenko","Simona Halep","Angelique Kerber","Petra Kvitova","Victoria Azarenka","Garbine Muguruza","Caroline Wozniacki","Ashleigh Barty"
+];
+
+function stateOf(e){return e?.state||"Unknown"}
+function parseTime(e){const d=new Date(e?.startISO||0);return Number.isFinite(d.getTime())?d:new Date(0)}
+function isTennisGents(e){return e.sport==="Tennis"&&String(e.stage||"").toLowerCase().startsWith("men's singles")}
+function isTennisLadies(e){return e.sport==="Tennis"&&String(e.stage||"").toLowerCase().startsWith("women's singles")}
+function sportEvents(){if(activeSport==="All")return allEvents;if(activeSport==="TennisMen")return allEvents.filter(isTennisGents);if(activeSport==="TennisWomen")return allEvents.filter(isTennisLadies);return allEvents.filter(e=>e.sport===activeSport)}
+function eventLabel(){return activeSport==="Football"?"Football World Cup":activeSport==="TennisMen"?"Wimbledon Gentlemen's Singles":activeSport==="TennisWomen"?"Wimbledon Ladies' Singles":"All Sports"}
+function isTennisTab(){return activeSport==="TennisMen"||activeSport==="TennisWomen"}
+function subtitleText(){return isTennisTab()?"Live data":eventLabel()+" • Live data"}
+function isFuture(e){return stateOf(e)==="Upcoming"&&parseTime(e).getTime()>Date.now()-30*60*1000}
+function sortEvents(list){return [...list].sort((a,b)=>{if(stateOf(a)==="Live"!== (stateOf(b)==="Live"))return stateOf(a)==="Live"?-1:1;if(isFuture(a)&&isFuture(b))return parseTime(a)-parseTime(b);if(isFuture(a)!==isFuture(b))return isFuture(a)?-1:1;return parseTime(b)-parseTime(a)})}
+function primary(){
+  let list=sportEvents();
+  if(activeFilter==="Stars")list=list.filter(e=>starMatches(e).length);
+  const live=list.filter(e=>stateOf(e)==="Live");
+  const starLive=live.find(e=>starMatches(e).length);
+  const latestFinished=sortEvents(list.filter(e=>stateOf(e)==="Finished"))[0];
+  const nextUpcoming=sortEvents(list.filter(isFuture))[0];
+  if(activeSport==="Football")return starLive||live[0]||latestFinished||nextUpcoming||list[0];
+  return starLive||live[0]||nextUpcoming||latestFinished||list[0];
+}
+function changeSport(v){activeSport=v;activeFilter="Upcoming";selectedId="";userSelected=false;$("subtitle").textContent=subtitleText();render()}
+function setFilter(v){activeFilter=v;render()}
+function selectEvent(id){selectedId=id;userSelected=true;render()}
+function fmtTime(e){const d=parseTime(e);return d.getTime()?d.toLocaleString([], {weekday:"short", day:"numeric", month:"short", hour:"numeric", minute:"2-digit"}):"TBD"}
+function countdown(e){const diff=parseTime(e)-Date.now();if(diff<=0)return"Starting now";const s=Math.floor(diff/1000),d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return d>=1?`${d}d ${h}h ${m}m`:`${h}h ${m}m`}
+function winnerText(e){const winner=(e.teams||[]).find(t=>t.winner);return winner?`${winner.short||winner.name} ${resultMethod(e)} ${e.scoreText?`• ${e.scoreText}`:""}`:(stateOf(e)==="Finished"?"Finished":"In progress")}
+function resultMethod(e){return /pens|penalties|shoot/i.test(`${e.status||""} ${e.detail||""}`)?"won on penalties":"won"}
+function resultSummary(e){
+  const winner=(e.teams||[]).find(t=>t.winner);
+  if(stateOf(e)!=="Finished"||!winner)return e.scoreText||displayStatus(e);
+  return `<span class="result-line"><span class="result-winner blink-result">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}</span><span class="result-score">${e.scoreText||""}</span></span>`;
+}
+function tennisPlainName(t){return String(t?.short||t?.name||"Player").replace(/^\[[^\]]+\]\s*/,"").trim()}
+function ordinal(n){const v=Number(n)||1;return v===1?"1st":v===2?"2nd":v===3?"3rd":`${v}th`}
+function tennisLiveSummary(e){
+  if(e?.sport!=="Tennis"||stateOf(e)!=="Live")return "";
+  const teams=(e.teams||[]).slice(0,2);
+  if(teams.length<2)return "Match live";
+  const sets=teams.map(tennisSetList);
+  const current=Math.max(1,...sets.map(s=>s.length));
+  const a=tennisSetValue(sets[0][current-1]),b=tennisSetValue(sets[1][current-1]);
+  const setLabel=`${ordinal(current)} set`;
+  if(Number.isFinite(a)&&Number.isFinite(b)){
+    if(a===b)return `${setLabel}, tied ${a}-${b}`;
+    const leader=a>b?teams[0]:teams[1],hi=Math.max(a,b),lo=Math.min(a,b);
+    return `${setLabel}, ${tennisPlainName(leader)} leads ${hi}-${lo}`;
+  }
+  return `${setLabel}, match live`;
+}
+function tennisStatusLabel(e){
+  if(e?.sport!=="Tennis")return "";
+  if(stateOf(e)==="Live")return tennisLiveSummary(e)||"Match live";
+  if(stateOf(e)==="Upcoming")return `Starts ${fmtTime(e)}`;
+  return e.status||"Finished";
+}
+function displayStatus(e){if(e?.synthetic)return e.status||"Projected lineup";if(e?.sport==="Tennis")return tennisStatusLabel(e);if(e?.sport==="Football"&&stateOf(e)==="Live")return footballPhase(e);if(stateOf(e)==="Live")return e.status||"Live";if(stateOf(e)==="Upcoming")return `Starts ${fmtTime(e)}`;return e.status}
+function footballMinute(e){
+  if(e?.sport!=="Football"||stateOf(e)!=="Live")return "";
+  const clock=String(e.clock||"").trim();
+  const status=String(e.status||"").trim();
+  const text=[clock,status].find(v=>/\d/.test(v))||"";
+  if(!text)return "Live";
+  if(/^\d+(:\d+)?$/.test(text))return `${text}'`;
+  return text;
+}
+function footballMinuteNumber(e){
+  const raw=footballMinute(e);
+  const found=String(raw).match(/\d+/);
+  return found?Number(found[0]):0;
+}
+function footballProgress(e){
+  if(e?.sport!=="Football")return "";
+  if(stateOf(e)==="Finished")return "90/90 min";
+  if(stateOf(e)==="Upcoming")return "0/90 min";
+  const minute=footballMinuteNumber(e);
+  return minute?`${Math.min(minute,90)}/90 min`:"Live";
+}
+function footballPhase(e){
+  if(e?.sport!=="Football")return displayStatus(e);
+  if(stateOf(e)==="Upcoming")return `Starts ${fmtTime(e)}`;
+  if(stateOf(e)==="Finished")return "Full time";
+  const text=String(e.status||"").toLowerCase();
+  if(text.includes("half"))return "Half-time";
+  const minute=footballMinuteNumber(e);
+  const stoppage=/\+/.test(String(e.clock||e.status||""));
+  if(!minute)return "Live";
+  if(minute<=15)return "Early first half";
+  if(minute<=35)return "Middle first half";
+  if(minute<=45)return stoppage?"First-half stoppage":"Late first half";
+  if(minute<=60)return "Early second half";
+  if(minute<=80)return "Middle second half";
+  if(minute<=90)return stoppage?"Second-half stoppage":"Late second half";
+  return "Second-half stoppage";
+}
+function footballTeamState(e,t){
+  if(stateOf(e)==="Upcoming")return "Yet to play";
+  const teams=(e.teams||[]).slice(0,2);
+  const scores=teams.map(x=>Number(x.score));
+  const own=Number(t?.score),other=teams.find(x=>x!==t),opp=Number(other?.score);
+  if(stateOf(e)==="Finished"){
+    if(t.winner)return "Won";
+    if(Number.isFinite(own)&&Number.isFinite(opp)&&own===opp)return "Draw";
+    return "Lost";
+  }
+  if(Number.isFinite(own)&&Number.isFinite(opp)){
+    if(own>opp)return "Leading";
+    if(own<opp)return "Trailing";
+    return "Level";
+  }
+  return "Live";
+}
+function footballHeroMain(e){
+  if(e.sport!=="Football")return displayStatus(e);
+  if(stateOf(e)==="Live"){
+    return [e.scoreText,footballPhase(e)].filter(Boolean).join(" • ");
+  }
+  if(stateOf(e)==="Finished")return winnerText(e);
+  return displayStatus(e);
+}
+function cleanLineupLabel(label=""){
+  if(!isTennisTab())return label;
+  return String(label)
+    .replace(/^(Gentlemen'?s Singles|Ladies'? Singles|Men'?s Singles|Women'?s Singles)\s*•\s*/i,"")
+    .trim();
+}
+function lineup(e){const label=cleanLineupLabel(e?.lineupLabel||"");return label?`<span class="lineup-label">${label}</span>`:""}
+function rankBadge(seed){return seed?`<span class="rank-badge">#${seed}</span>`:""}
+function formatRankedText(text){return String(text||"").replace(/\[(\d{1,3})\]\s*/g,(_,n)=>`<span class="rank-badge">#${n}</span>`)}
+function countryBadge(country){return country?`<span class="country-badge">${country}</span>`:""}
+function participantLabel(t){return t?.seed?`${rankBadge(t.seed)}${t.short||t.name}`:(t.short||t.name)}
+function starMatches(e){
+  const haystack=[e.name,e.shortName,e.stage,...(e.teams||[]).flatMap(t=>[t.name,t.short])].filter(Boolean).join(" | ").toLowerCase();
+  const list=e.sport==="Football"?FOOTBALL_STARS:e.sport==="Tennis"?TENNIS_STARS:[...FOOTBALL_STARS,...TENNIS_STARS];
+  return list.filter(name=>haystack.includes(name.toLowerCase()));
+}
+function starTag(e){
+  const found=starMatches(e);
+  return found.length?`<span class="star-tag">★ Star</span>`:"";
+}
+function footballRoundRank(e){return ({G:0,R32:1,R16:2,Q:3,S:4,Final:5,"3P":6}[e?.roundCode]??99)}
+function nextRoundLineup(){
+  if(activeSport==="TennisMen"||activeSport==="TennisWomen")return tennisNextRoundLineup();
+  const football=sportEvents().filter(e=>e.sport==="Football"&&stateOf(e)!=="Finished"&&footballRoundRank(e)>0&&footballRoundRank(e)<99);
+  if(!football.length)return[];
+  const earliest=Math.min(...football.map(footballRoundRank));
+  const nextRanks=[...new Set(football.map(footballRoundRank))].filter(r=>r>earliest).sort((a,b)=>a-b);
+  const target=nextRanks[0]??earliest;
+  return sortEvents(football.filter(e=>footballRoundRank(e)===target));
+}
+function tennisRoundNo(e){const found=String(e?.roundCode||"").match(/^R(\d+)$/);return found?Number(found[1]):0}
+function tennisNextRoundName(roundNo){return roundNo>=1?`Round ${roundNo+1}`:"Next Round"}
+function tennisPlayerOrPlaceholder(e){const winner=(e.teams||[]).find(t=>t.winner);if(stateOf(e)==="Finished"&&winner)return winner.name||winner.short;return `Winner of Match No ${e.roundMatchNumber||"?"}`}
+function tennisNextRoundLineup(){
+  const rows=sportEvents().filter(e=>e.sport==="Tennis"&&tennisRoundNo(e)>0&&e.roundMatchNumber&&!/^TBD\s+vs\s+TBD$/i.test(e.name||""));
+  if(!rows.length)return[];
+  const open=rows.filter(e=>stateOf(e)!=="Finished");
+  const roundNo=open.length?Math.min(...open.map(tennisRoundNo)):Math.max(...rows.map(tennisRoundNo));
+  const current=rows.filter(e=>tennisRoundNo(e)===roundNo).sort((a,b)=>a.roundMatchNumber-b.roundMatchNumber);
+  const out=[];
+  for(let i=0;i<current.length;i+=2){
+    const a=current[i],b=current[i+1];
+    if(!a||!b)continue;
+    const draw=a.drawName||eventLabel(),nextRound=tennisNextRoundName(roundNo),name=`${tennisPlayerOrPlaceholder(a)} vs ${tennisPlayerOrPlaceholder(b)}`;
+    out.push({synthetic:true,id:`tennis-next-${activeSport}-${roundNo}-${i}`,sport:"Tennis",competition:"Wimbledon",name,lineupName:name,lineupLabel:`${draw} • ${nextRound} • Lineup ${Math.floor(i/2)+1}`,state:"Upcoming",status:"Projected from current-round match numbers",stage:`Projected ${nextRound}`,startISO:"",teams:[],detail:"Projected from current-round match numbers"});
+  }
+  return out;
+}
+function hasNextRoundTab(){return activeSport==="Football"||activeSport==="TennisMen"||activeSport==="TennisWomen"}
+function cleanTennisStage(stage=""){
+  if(!isTennisTab())return stage;
+  return String(stage)
+    .replace(/Wimbledon\s*•\s*/gi,"")
+    .replace(/Men'?s Singles\s*•\s*/gi,"")
+    .replace(/Women'?s Singles\s*•\s*/gi,"")
+    .replace(/Gentlemen'?s Singles\s*•\s*/gi,"")
+    .replace(/Ladies'? Singles\s*•\s*/gi,"")
+    .trim() || stage;
+}
+function rowTitle(e){return formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name)}
+function tennisSetList(t){if(Array.isArray(t?.sets)&&t.sets.length)return t.sets.map(s=>String(s.display??s.value??""));return String(t?.score||"").split(/\s+/).filter(Boolean)}
+function tennisSetValue(v){return Number(String(v||"").match(/\d+/)?.[0])}
+function tennisSetComplete(a,b){const x=tennisSetValue(a),y=tennisSetValue(b);if(!Number.isFinite(x)||!Number.isFinite(y))return false;const hi=Math.max(x,y),lo=Math.min(x,y);return (hi>=6&&hi-lo>=2)||(hi===7&&lo>=5)}
+function tennisSetsWon(team,opp){const a=tennisSetList(team),b=tennisSetList(opp);return a.reduce((n,v,i)=>n+(tennisSetComplete(v,b[i])&&tennisSetValue(v)>tennisSetValue(b[i])?1:0),0)}
+function tennisFullLabelText(t){return `${t?.seed?`#${t.seed} `:""}${t.name||t.short||"Player"}${t.country?` • ${t.country}`:""}`}
+function tennisFullLabel(t){return `${rankBadge(t?.seed)}${t.name||t.short||"Player"}${countryBadge(t?.country)}`}
+function tennisPoint(t){const p=String(t?.point??"").trim();return p&&p!=="null"?p:""}
+function tennisScoreRows(e){
+  const teams=(e.teams||[]).slice(0,2);
+  if(teams.length<2)return`<div class="score-row"><b>Score</b><span>${e.scoreText||"--"}</span><small>${stateOf(e)}</small></div>`;
+  const sets=teams.map(tennisSetList),max=Math.max(1,...sets.map(s=>s.length));
+  const hasPoints=stateOf(e)==="Live"&&teams.some(t=>tennisPoint(t));
+  const grid=`grid-template-columns:minmax(150px,1fr) repeat(${max},48px) ${hasPoints?"58px ":""}66px`;
+  const header=`<div class="tennis-score-head" style="${grid}"><div>Player</div>${Array.from({length:max},(_,i)=>`<div>${i===max-1&&stateOf(e)==="Live"?"Games":`Set ${i+1}`}</div>`).join("")}${hasPoints?`<div>Point</div>`:""}<div>Sets</div></div>`;
+  const rows=teams.map((t,row)=>{
+    const opp=teams[row?0:1],own=sets[row],other=sets[row?0:1];
+    return `<div class="tennis-score-player ${stateOf(e)==="Finished"&&t.winner?"match-winner":""}" style="${grid}"><div class="tennis-player-name" title="${tennisFullLabelText(t)}">${tennisFullLabel(t)}</div>${Array.from({length:max},(_,i)=>{const v=own[i]||"--",lead=Number.isFinite(tennisSetValue(v))&&Number.isFinite(tennisSetValue(other[i]))&&tennisSetValue(v)>tennisSetValue(other[i]);return`<div class="tennis-set-cell ${lead?"set-leader":""} ${i===max-1&&stateOf(e)==="Live"?"current-set":""}">${v}</div>`}).join("")}${hasPoints?`<div class="tennis-set-cell current-set">${tennisPoint(t)||"--"}</div>`:""}<div class="tennis-sets-won">${tennisSetsWon(t,opp)}</div></div>`;
+  }).join("");
+  return `<div class="tennis-score-table">${header}${rows}</div>`;
+}
+function footballScoreRows(e){
+  const teams=(e.teams||[]).slice(0,2);
+  if(stateOf(e)!=="Live"){
+    return teams.map(t=>`<div class="score-row team-football"><b>${participantLabel(t)}</b><span>${stateOf(e)==="Finished"?(t.score??"--"):""}</span><small></small></div>`).join("")||`<div class="score-row team-football"><b>${displayStatus(e)}</b><span></span><small>${stateOf(e)}</small></div>`;
+  }
+  return teams.map(t=>`<div class="score-row team-football"><b>${participantLabel(t)}</b><span>${t.score??"--"}</span><small></small></div>`).join("")||`<div class="score-row team-football"><b>Score</b><span>${e.scoreText||"--"}</span><small>${footballPhase(e)}</small></div>`;
+}
+function scoreRows(e){if(e.sport==="Tennis")return tennisScoreRows(e);return footballScoreRows(e)}
+function detailStats(e){if(e.sport==="Football"){return [["Phase",footballPhase(e)],["Venue",e.venue||"--"]]}return [["Stage",cleanTennisStage(e.stage)],["Court",e.venue||"--"]]}
+function matchDetail(e){
+  if(e?.sport==="Tennis"&&stateOf(e)==="Live")return tennisLiveSummary(e)||displayStatus(e);
+  const detail=e.detail||"";
+  if(!/pens|penalties|shoot/i.test(`${e.status||""} ${detail}`))return detail;
+  return detail.split(/\s*•\s*/).filter(part=>!/^\s*120['’′]/.test(part)).join(" • ");
+}
+function heroEyebrow(e){return e.sport==="Tennis"&&isTennisTab()?stateOf(e):`${e.competition} • ${stateOf(e)}`}
+function renderHero(e){$("heroMount").innerHTML=`<div class="hero"><div class="hero-grid"><div class="hero-left"><div class="eyebrow">${heroEyebrow(e)}</div><div class="event-title">${lineup(e)}${formatRankedText(e.name)}${starTag(e)}</div><div class="hero-main">${footballHeroMain(e)}</div><div class="match-status">${matchDetail(e)}</div></div><div class="hero-right"><div class="score-title">${stateOf(e)==="Live"?"LIVE SCORE":stateOf(e)==="Upcoming"?"UPCOMING":"MATCH INFO"}</div><div class="scoreboard">${scoreRows(e)}</div><div class="stats">${detailStats(e).map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join("")}</div></div></div></div>`}
+function nextOther(){return sortEvents(sportEvents().filter(e=>isFuture(e)&&e.id!==selectedId))[0]}
+function renderCards(e){
+  if(e.sport==="Football"){
+    const statusLabel=stateOf(e)==="Live"?"Live":stateOf(e)==="Finished"?"FT":"Upcoming";
+    $("cardsMount").innerHTML=`<div class="cards football-cards"><div class="card blue"><small>Status / Phase:</small><b>${statusLabel} • ${footballPhase(e)}</b></div><div class="card orange"><small>Time:</small><b>${footballProgress(e)}</b></div></div>`;
+    return;
+  }
+  if(e.sport==="Tennis"){
+    $("cardsMount").innerHTML=`<div class="cards tennis-cards"><div class="card blue"><small>Round:</small><b>${cleanTennisStage(e.stage)||stateOf(e)}</b></div><div class="card orange"><small>Match:</small><b>${displayStatus(e)}</b></div></div>`;
+    return;
+  }
+  const next=nextOther();$("cardsMount").innerHTML=`<div class="cards"><div class="card green"><small>Sport:</small><b>${eventLabel()}</b></div><div class="card blue"><small>Phase:</small><b>${e.stage||stateOf(e)}</b></div><div class="card orange"><small>Status:</small><b>${stateOf(e)==="Live"?"Live":displayStatus(e)}</b></div><div class="card purple"><small>Next Other:</small><b>${next?countdown(next):"No other upcoming"}</b></div></div>`;
+}
+function getList(){let list=sportEvents();if(activeFilter==="Next Round Lineup")return nextRoundLineup().slice(0,3);if(activeFilter==="Stars")return sortEvents(list.filter(e=>starMatches(e).length)).slice(0,3);if(activeFilter!=="All")list=list.filter(e=>stateOf(e)===activeFilter);if(activeFilter==="All"){const live=list.filter(e=>stateOf(e)==="Live").slice(0,1),up=sortEvents(list.filter(isFuture)).slice(0,1),fin=sortEvents(list.filter(e=>stateOf(e)==="Finished")).slice(0,1);return [...live,...up,...fin].filter((e,i,a)=>a.findIndex(x=>x.id===e.id)===i).slice(0,3)}return sortEvents(list).slice(0,3)}
+function badge(state){return`<span class="pill ${state.toLowerCase()}">${state}</span>`}
+function rowStatus(e){const stage=e.sport==="Tennis"?cleanTennisStage(e.stage):e.stage;return stateOf(e)==="Finished"?`${resultSummary(e)} <span class="match-status-extra">• ${stage}</span>`:`${e.sport==="Tennis"?"":`${e.sport} • `}${displayStatus(e)} • ${stage}`}
+function renderMain(){const filters=["Upcoming","Live","Finished","Stars",...(hasNextRoundTab()?["Next Round Lineup"]:[])];const rows=getList(),next=nextOther();$("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">Recent & Upcoming</div></div><div class="section">${next?`<div class="timer"><div><b>${lineup(next)}${rowTitle(next)}${starTag(next)}</b><div class="match-status">${next.sport==="Tennis"?cleanTennisStage(next.stage):next.stage} • ${fmtTime(next)}</div></div><div class="timer-right"><small>Next match starts in</small><div class="countdown">${countdown(next)}</div></div></div>`:""}<div class="filter-bar"><div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div></div><div class="match-list">${rows.map(e=>`<div class="match-row ${selectedId===e.id?"active":""} ${stateOf(e)==="Finished"?"finished-row":""}" ${e.synthetic?"":`onclick="selectEvent('${e.id}')"`}><div><div class="match-name">${lineup(e)}${rowTitle(e)}${starTag(e)}</div><div class="match-status">${rowStatus(e)}</div></div>${badge(stateOf(e))}</div>`).join("")||`<div class="match-row"><div>No ${activeFilter.toLowerCase()} ${eventLabel()} events found.</div></div>`}</div></div></div>`}
+function render(){const e=(userSelected&&selectedId&&sportEvents().find(x=>x.id===selectedId))||primary();if(!e){$("heroMount").innerHTML="";$("cardsMount").innerHTML="";$("mainMount").innerHTML=`<div class="panel"><div class="section">No events found.</div></div>`;return}selectedId=e.id;renderHero(e);renderCards(e);renderMain()}
+async function loadData(){if(inFlight)return;inFlight=true;const s=$("apiStatus");try{s.textContent=allEvents.length?"● REFRESHING":"● LOADING";s.className="status warn";const res=await fetch(apiBase+"/api/sports?t="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error("Sports service returned "+res.status);const json=await res.json();allEvents=json.data||[];if(!userSelected){const e=primary();if(e)selectedId=e.id}s.textContent=allEvents.some(e=>stateOf(e)==="Live")?"● LIVE":"● CONNECTED";s.className="status";$("updatedAt").textContent="Updated: "+new Date().toLocaleTimeString();render()}catch(err){s.textContent="● ERROR";s.className="status bad";if(!allEvents.length)$("mainMount").innerHTML=`<div class="panel"><div class="section">Sports service is waking up. Retrying...</div></div>`;console.error(err)}finally{inFlight=false}}
+$("sportSelect").value=activeSport;
+$("subtitle").textContent=subtitleText();loadData();setInterval(loadData,20000);setInterval(render,1000);
+</script>
+</body>
+</html>
+

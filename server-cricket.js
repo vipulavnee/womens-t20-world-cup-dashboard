@@ -878,6 +878,25 @@ async function fetchFinishedScorecardScores(url, teams) {
   return [];
 }
 
+function extractCurrentBatters(text) {
+  const source = clean(text);
+  const battingSegment = source.match(/Follow\s+[^|]*?\([^)]*\)\s+\(([^|]*?\d+\(\d+\)[^|]*?)\)\s*\|/i)?.[1]
+    || source.slice(0, 260);
+  const batters = [];
+  const pattern = /([A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3})\s+(\d+)\((\d+)\)/g;
+  let match;
+
+  while ((match = pattern.exec(battingSegment)) !== null) {
+    batters.push({
+      name: clean(match[1]),
+      runs: Number(match[2]),
+      balls: Number(match[3])
+    });
+  }
+
+  return batters.slice(0, 2);
+}
+
 function parseLiveDetails(text, scores, teams = []) {
   const source = clean(text);
 
@@ -889,7 +908,8 @@ function parseLiveDetails(text, scores, teams = []) {
     lastFive: "",
     battingTeam: "",
     target: "",
-    simpleSituation: ""
+    simpleSituation: "",
+    currentBatters: []
   };
 
 
@@ -913,6 +933,8 @@ function parseLiveDetails(text, scores, teams = []) {
 
   const lastFiveMatch = source.match(/Last 5 overs?[:\s]+(\d+\s+runs?,?\s*\d*\s*wkts?)/i);
   if (lastFiveMatch) details.lastFive = clean(lastFiveMatch[1]);
+
+  details.currentBatters = extractCurrentBatters(source);
 
   const chaseMatch = source.match(/([A-Za-z ]+)\s+need\s+(\d+)\s+runs?\s+in\s+(\d+)\s+balls?/i);
   const chaseTeamText = clean(chaseMatch?.[1]).toLowerCase();
@@ -1368,7 +1390,7 @@ async function getCachedMatches() {
   return { data: await matchFetchPromise, cached: false };
 }
 
-app.get("/api/womens-t20-world-cup", async (req, res) => {
+async function sendCricketDashboardMatches(res) {
   try {
     const { data, cached, stale } = await getCachedMatches();
 
@@ -1390,9 +1412,17 @@ app.get("/api/womens-t20-world-cup", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       status: "error",
-      error: error.message || "Failed to fetch Women's T20 World Cup matches"
+      error: error.message || "Failed to fetch cricket dashboard matches"
     });
   }
+}
+
+app.get("/api/cricket-dashboard-matches", async (req, res) => {
+  await sendCricketDashboardMatches(res);
+});
+
+app.get("/api/womens-t20-world-cup", async (req, res) => {
+  await sendCricketDashboardMatches(res);
 });
 
 app.get("/api/health", (req, res) => {
@@ -1400,12 +1430,16 @@ app.get("/api/health", (req, res) => {
     status: "ok",
     app: "Vipul AI Dashboard",
     port: PORT,
-    routes: ["/api/womens-t20-world-cup", "/api/health"]
+    routes: ["/api/cricket-dashboard-matches", "/api/health"]
   });
 });
 
 app.get("/", (req, res) => {
-  res.redirect("/womens-world-cup.html");
+  res.redirect("/cricket-dashboard.html");
+});
+
+app.get("/womens-world-cup.html", (req, res) => {
+  res.redirect("/cricket-dashboard.html");
 });
 
 

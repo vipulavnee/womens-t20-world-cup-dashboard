@@ -168,7 +168,6 @@ h1{font-size:42px;line-height:1;margin:10px 0;font-weight:950;letter-spacing:-.0
     </div>
     <div class="actions">
       <select class="competition-select" id="competitionSelect" onchange="changeCompetition(this.value)">
-        <option value="" disabled selected>Select series</option>
         <option value="Women's T20 World Cup">Women's World Cup</option>
         <option value="Indian Men">Indian Men</option>
         <option value="Test Championship">Test Championship</option>
@@ -504,8 +503,8 @@ function testMatchPreference(m){
 
 function finishedSortValue(m){
   if(activeCompetition==="Indian Men"){
-    const n=matchOrdinal(m);
-    if(n)return n * 10000000000000;
+    const start=parseStartTime(m).getTime();
+    if(Number.isFinite(start))return start;
   }
   return parseStartTime(m).getTime() || 0;
 }
@@ -805,6 +804,13 @@ function currentScore(match){
   return s[0];
 }
 
+function hasStartedScoring(match){
+  return (Array.isArray(match?.scores)?match.scores:[]).some(row=>{
+    const score=String(row?.score||"").trim();
+    return /\d/.test(score)&&!/^(?:--|0)?$/.test(score);
+  });
+}
+
 function currentInningsScore(row){
   return String(row?.score||"").split("&").pop().trim();
 }
@@ -1071,7 +1077,7 @@ function displaySituation(match){
       const currentTeam=currentScore(match)?.team;
       const chasing=(match?.teams||[]).find(team=>status.toLowerCase().includes(String(team).toLowerCase()))
         || (match?.teams||[]).find(team=>teamShort(team)===currentTeam)
-        || currentTeam || "Batting side";
+        || currentTeam || "Chasing team";
       return `${chasing} needs ${needed[1]} runs to win`;
     }
   }
@@ -1096,13 +1102,37 @@ function matchSituationText(match){
   if(st === "Upcoming") return "Pre-match";
   if(st === "Finished") return match?.status || "Match finished";
   if(isInningsBreak(match)) return "Innings break";
+  if(!hasStartedScoring(match)) return "Match not started";
 
   if(innings(match) <= 1){
     const row = currentScore(match);
-    return `${row?.team || "Batting side"} batting first`;
+    return row?.team ? `${row.team} first innings` : "First innings";
   }
 
   return displaySituation(match);
+}
+
+function currentBattersText(match){
+  if(stateOf(match)!=="Live")return "";
+  let batters=Array.isArray(match?.liveDetails?.currentBatters)
+    ? match.liveDetails.currentBatters
+    : [];
+  if(!batters.length){
+    const source=String(match?.rawText||"").replace(/\s+/g," ").trim();
+    const segment=source.match(/Follow\s+[^|]*?\([^)]*\)\s+\(([^|]*?\d+\(\d+\)[^|]*?)\)\s*\|/i)?.[1]
+      || source.slice(0,260);
+    const parsed=[];
+    const pattern=/([A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,3})\s+(\d+)\((\d+)\)/g;
+    let m;
+    while((m=pattern.exec(segment))!==null){
+      parsed.push({name:m[1].trim(),runs:Number(m[2]),balls:Number(m[3])});
+    }
+    batters=parsed.slice(0,2);
+  }
+  if(!batters.length)return "";
+  return batters
+    .map(b=>`${b.name} ${b.runs ?? ""}(${b.balls ?? ""})`)
+    .join(" | ");
 }
 
 
@@ -1116,6 +1146,7 @@ function stageLabelHtml(m){
 function renderHero(match){
 const no=getMatchNumber(match),st=stateOf(match),heading=st==="Upcoming"?"PRE-MATCH":st==="Finished"?"FINAL SCORES":"LIVE SCORES";
 const testMatch=isTest(match),finishedTest=testMatch&&st==="Finished",testRR=testMatch?currentRR(match):"",testChase=testMatch?testChaseData(match):null;
+const batters=currentBattersText(match);
 const rrLabel=finishedTest?"Result":testMatch?(testRR?"Innings RR (less relevant)":"Target"):"Current RR";
 const rrValue=finishedTest?(match?.status||"Match finished"):testMatch?(testRR||testChase?.target||"--"):currentRR(match);
 const thirdLabel=finishedTest?"Match Status":testMatch?"Overs / Wickets Remaining":"Required RR";
@@ -1134,6 +1165,7 @@ ${st==="Finished"&&match?.playerOfMatch?`<div><span class="player-award">Player 
       <div class="scoreboard">${scoreHTML(match)}</div>
       <div class="stats">
 <div class="stat"><small>Situation</small><b>${womenLabel(matchSituationText(match))}</b></div>
+        ${batters?`<div class="stat"><small>Batting Now</small><b>${womenLabel(batters)}</b></div>`:""}
         <div class="stat"><small>${rrLabel}</small><b>${rrValue}</b></div>
         <div class="stat"><small>${thirdLabel}</small><b>${thirdValue}</b></div>
       </div>
@@ -1444,7 +1476,7 @@ async function loadMatches(){
     const apiBase = location.protocol === "file:" ? "http://localhost:3002" : "";
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),25000);
-    const res=await fetch(apiBase+"/api/womens-t20-world-cup?t="+Date.now(),{
+    const res=await fetch(apiBase+"/api/cricket-dashboard-matches?t="+Date.now(),{
       cache:"no-store",signal:controller.signal
     });
     clearTimeout(timeout);
@@ -1488,9 +1520,10 @@ async function loadMatches(){
 }
 
 try{
-  activeCompetition=TOURNAMENT_CATEGORY;
-  localStorage.removeItem("activeCompetition");
-  $("competitionSelect").value="";
+  const savedCompetition=localStorage.getItem("activeCompetition");
+  const competitionOptions=[...$("competitionSelect").options].map(option=>option.value);
+  activeCompetition=competitionOptions.includes(savedCompetition) ? savedCompetition : TOURNAMENT_CATEGORY;
+  $("competitionSelect").value=activeCompetition;
   $("competitionSubtitle").textContent=`${competitionLabel()} · Live data`;
   const saved=JSON.parse(localStorage.getItem("cricketDashboardMatchesV2")||"[]");
   allMatches=withLocalSchedule(saved);

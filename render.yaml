@@ -1,9 +1,18 @@
 services:
   - type: web
-    name: womens-t20-world-cup-dashboard
+    name: cricket-dashboard
     runtime: node
     plan: free
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server-cricket.js
     healthCheckPath: /api/health
-    autoDeployTrigger: commit
+    autoDeploy: false
+
+  - type: web
+    name: other-sports-dashboard
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server-other-sports.js
+    healthCheckPath: /api/health
+    autoDeploy: false

@@ -1,12 +1,12 @@
 {
-  "name": "womens-t20-world-cup-dashboard",
+  "name": "cricket-dashboard",
   "version": "1.0.0",
   "private": true,
-  "description": "Live ICC Women's T20 World Cup dashboard",
-  "main": "server-womens.js",
+  "description": "Live cricket dashboard for Women's World Cup, Indian Men, and Test Championship matches",
+  "main": "server-cricket.js",
   "scripts": {
-    "start": "node server-womens.js",
-    "check": "node --check server-womens.js"
+    "start": "node server-cricket.js",
+    "check": "node --check server-cricket.js"
   },
   "engines": {
     "node": ">=20"
