@@ -3,6 +3,7 @@ title Start Other Sports Dashboard
 set "APP_DIR=A:\..monthwise\dashboards\cricket"
 set "PORT=3003"
 set "LOCAL_URL=http://127.0.0.1:3003/other-sports-dashboard.html"
+set "RENDER_URL=https://other-sports-dashboard.onrender.com/other-sports-dashboard.html"
 
 cd /d "%APP_DIR%"
 set "NODE_PATH=%APP_DIR%\node_modules"
@@ -17,6 +18,8 @@ timeout /t 3 /nobreak >nul
 where msedge >nul 2>&1
 if %ERRORLEVEL%==0 (
     start "" msedge --new-window "%LOCAL_URL%?v=%RANDOM%%RANDOM%"
+    start "" msedge --new-window "%RENDER_URL%"
 ) else (
     start "" "%LOCAL_URL%?v=%RANDOM%%RANDOM%"
+    start "" "%RENDER_URL%"
 )

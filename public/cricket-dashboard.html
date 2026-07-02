@@ -550,7 +550,6 @@ function competitionLabel(){
 
 function changeCompetition(value){
   activeCompetition=value;
-  localStorage.setItem("activeCompetition",value);
   selectedMatchId="";
   userSelected=false;
   activeFilter="All";
@@ -1484,7 +1483,6 @@ async function loadMatches(){
     const json=await res.json();
 
     allMatches=withLocalSchedule(json.data||[]);
-    if(allMatches.length)localStorage.setItem("cricketDashboardMatchesV2",JSON.stringify(allMatches));
 
     const live=getLiveMatch();
     const selectedStillExists=getTournamentMatches().some(m=>String(m.id)===String(selectedMatchId));
@@ -1520,13 +1518,12 @@ async function loadMatches(){
 }
 
 try{
-  const savedCompetition=localStorage.getItem("activeCompetition");
-  const competitionOptions=[...$("competitionSelect").options].map(option=>option.value);
-  activeCompetition=competitionOptions.includes(savedCompetition) ? savedCompetition : TOURNAMENT_CATEGORY;
+  localStorage.removeItem("activeCompetition");
+  localStorage.removeItem("cricketDashboardMatchesV2");
+  activeCompetition=TOURNAMENT_CATEGORY;
   $("competitionSelect").value=activeCompetition;
   $("competitionSubtitle").textContent=`${competitionLabel()} · Live data`;
-  const saved=JSON.parse(localStorage.getItem("cricketDashboardMatchesV2")||"[]");
-  allMatches=withLocalSchedule(saved);
+  allMatches=[];
   renderPage();
 }catch{}
 
