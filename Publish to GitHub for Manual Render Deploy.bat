@@ -10,7 +10,7 @@ git config user.name "Vipul"
 git config user.email "vipulavnee@users.noreply.github.com"
 
 git add -u
-git add -- package.json render.yaml server-cricket.js server-other-sports.js public\cricket-dashboard.html public\other-sports-dashboard.html "Start Cricket Dashboard.bat" "Start Other Sports Dashboard.bat" "Publish Cricket Dashboard to Render.bat" "Publish to GitHub for Manual Render Deploy.bat"
+git add -- package.json render.yaml server-cricket.js server-other-sports.js public\cricket-dashboard.html public\other-sports-dashboard.html "Start Cricket Dashboard.bat" "Start Other Sports Dashboard.bat" "Publish Cricket Dashboard to Render.bat" "Publish to GitHub for Manual Render Deploy.bat" "Auto Publish to Render Watcher.bat" auto-publish-render-watcher.ps1
 
 git diff --cached --quiet
 if not errorlevel 1 goto :push
