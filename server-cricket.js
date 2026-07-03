@@ -148,7 +148,7 @@ const WOMENS_FUTURE_FIXTURES = [
   {
     id: "wwc-2026-33",
     matchNo: "33rd Match - Final",
-    teams: ["Australia Women", "Winner of 2nd Semi-final"],
+    teams: ["Australia Women", "England Women"],
     startISO: "2026-07-05T13:30:00.000Z",
     venue: "Lord's, London"
   }
@@ -240,6 +240,21 @@ const WOMENS_RESULT_FIXTURES = [
       { team: "AUSW", score: "126/2", overs: "17.4" }
     ],
     playerOfMatch: "Beth Mooney"
+  },
+  {
+    id: "wwc-2026-32-result",
+    matchNo: "32nd Match - 2nd Semi-final",
+    teams: ["England Women", "South Africa Women"],
+    startISO: "2026-07-02T13:30:00.000Z",
+    venue: "Kennington Oval, London",
+    state: "Finished",
+    status: "England Women won by 40 runs",
+    score: "ENGW 169/5 (20 ov) | RSAW 129/8 (20 ov)",
+    scores: [
+      { team: "ENGW", score: "169/5", overs: "20" },
+      { team: "RSAW", score: "129/8", overs: "20" }
+    ],
+    playerOfMatch: "Nat Sciver-Brunt"
   }
 ];
 
