@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo Uploading dashboard changes to GitHub...
-echo Render auto-deploy is OFF, so this will not make the website live by itself.
+echo Render auto-deploy is ON, so GitHub upload will trigger Render automatically.
 echo.
 
 git config user.name "Vipul"
@@ -24,12 +24,12 @@ if errorlevel 1 goto :failed
 
 echo.
 echo Uploaded to GitHub successfully.
-echo Next step: go to Render and manually deploy whichever service you want live.
+echo Render should auto-deploy now.
 echo.
-echo Cricket URL after deploy:
+echo Cricket URL:
 echo https://womens-t20-world-cup-dashboard.onrender.com/cricket-dashboard.html
 echo.
-echo Other Sports URL after deploy:
+echo Other Sports URL:
 echo https://other-sports-dashboard.onrender.com/other-sports-dashboard.html
 echo.
 pause

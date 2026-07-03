@@ -6,7 +6,7 @@ services:
     buildCommand: npm install
     startCommand: node server-cricket.js
     healthCheckPath: /api/health
-    autoDeploy: false
+    autoDeploy: true
 
   - type: web
     name: other-sports-dashboard
@@ -15,4 +15,4 @@ services:
     buildCommand: npm install
     startCommand: node server-other-sports.js
     healthCheckPath: /api/health
-    autoDeploy: false
+    autoDeploy: true

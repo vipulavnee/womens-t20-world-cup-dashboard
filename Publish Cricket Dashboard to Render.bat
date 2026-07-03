@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo Publishing Cricket and Other Sports dashboards to GitHub...
-echo Render auto-deploy is OFF. After this finishes, deploy manually in Render.
+echo Render auto-deploy is ON. After GitHub upload, Render will deploy automatically.
 git config user.name "Vipul"
 git config user.email "vipulavnee@users.noreply.github.com"
 git add -u
@@ -20,9 +20,10 @@ if errorlevel 1 goto :failed
 
 echo.
 echo Uploaded to GitHub.
-echo Now open Render and manually deploy the service you want live.
-echo Cricket: womens-t20-world-cup-dashboard / cricket-dashboard
-echo Other Sports: other-sports-dashboard
+echo Render should auto-deploy now.
+echo Wait 2-5 minutes, then hard-refresh the website.
+echo Cricket: https://womens-t20-world-cup-dashboard.onrender.com/cricket-dashboard.html
+echo Other Sports: https://other-sports-dashboard.onrender.com/other-sports-dashboard.html
 pause
 exit /b 0
 
