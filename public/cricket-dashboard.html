@@ -221,6 +221,28 @@ const LOCAL_SCHEDULE_COPY = [
   state:"Upcoming",status:`Starts ${startISO.slice(0,10)} · ${venue}`,source:"Local schedule copy",scores:[],score:"Match not started",liveDetails:{venue}
 }));
 
+function scheduleState(match){
+  const start=Date.parse(match?.startISO||"");
+  if(!Number.isFinite(start)||start>Date.now())return"Upcoming";
+  const text=`${match?.matchNo||""} ${match?.url||""}`.toLowerCase();
+  const hours=text.includes("odi")?9:text.includes("test")?120:5;
+  return Date.now()-start<=hours*60*60*1000?"Live":"Finished";
+}
+
+function scheduleFallback(match){
+  const state=scheduleState(match);
+  if(state==="Upcoming")return match;
+  return {
+    ...match,
+    state,
+    status:state==="Live"?"Match in progress - live score pending":"Result pending update",
+    source:"Local schedule pending result",
+    score:state==="Live"?"Live score pending":"Result pending update",
+    scores:[],
+    rawText:""
+  };
+}
+
 const LOCAL_RESULT_COPY = [
   {
     id:"copy-wwc-24",
@@ -364,8 +386,7 @@ function withLocalSchedule(matches){
     ...match,
     category:match?.category==="India Men"?"Indian Men":match?.category==="England vs New Zealand"?"Test Championship":match?.category
   }));
-  const future=LOCAL_SCHEDULE_COPY.filter(match=>Date.parse(match.startISO)>Date.now());
-  for(const fixture of future){
+  for(const fixture of LOCAL_SCHEDULE_COPY.map(scheduleFallback)){
     const duplicate=normalized.some(match=>{
       const sameCategory=match.category===fixture.category;
       const sameTeams=[...(match.teams||[])].sort().join("|")===[...fixture.teams].sort().join("|");
@@ -641,10 +662,10 @@ function getNumberedWorldCupMatches(matches){
 function getIndiaTabMatches(){
   const matches=getTournamentMatches().filter(isIndiaMatch);
   const live=matches.filter(m=>stateOf(m)==="Live");
-  const upcoming=matches.filter(isFutureUpcoming).slice(0,1);
   const finished=matches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>finishedSortValue(b)-finishedSortValue(a)).slice(0,2);
+  const upcoming=matches.filter(isFutureUpcoming).slice(0,1);
   const seen=new Set();
-  return [...live,...upcoming,...finished].filter(m=>{
+  return [...live,...finished,...upcoming].filter(m=>{
     const id=String(m.id);
     if(seen.has(id))return false;
     seen.add(id);

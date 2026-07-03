@@ -154,6 +154,57 @@ const WOMENS_FUTURE_FIXTURES = [
   }
 ];
 
+function scheduledFixtureState(fixture, now = Date.now()) {
+  const start = Date.parse(fixture.startISO || "");
+  if (!Number.isFinite(start)) return "Upcoming";
+  if (start > now) return "Upcoming";
+
+  const text = `${fixture.matchNo || ""} ${fixture.url || ""}`.toLowerCase();
+  const matchHours = text.includes("odi") ? 9 : text.includes("test") ? 120 : 5;
+  return now - start <= matchHours * 60 * 60 * 1000 ? "Live" : "Finished";
+}
+
+function scheduledFixtureStatus(fixture, state) {
+  if (state === "Upcoming") {
+    return fixture.venue ? `Starts ${fixture.startISO.slice(0, 10)} - ${fixture.venue}` : `Starts ${fixture.startISO.slice(0, 10)}`;
+  }
+  if (state === "Live") return "Match in progress - live score pending";
+  return "Result pending update";
+}
+
+function scheduledFixtureScore(state) {
+  if (state === "Upcoming") return "Match not started";
+  if (state === "Live") return "Live score pending";
+  return "Result pending update";
+}
+
+function scheduleFixtureToMatch(fixture, category) {
+  const state = scheduledFixtureState(fixture);
+  return {
+    ...fixture,
+    name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
+    category,
+    state,
+    status: scheduledFixtureStatus(fixture, state),
+    source: state === "Upcoming" ? "Local schedule copy" : "Local schedule pending result",
+    score: scheduledFixtureScore(state),
+    scores: [],
+    playerOfMatch: "",
+    liveDetails: { venue: fixture.venue || "" },
+    liveScorecard: null,
+    rawText: ""
+  };
+}
+
+function hasSameScheduledMatch(matches, fixture, category) {
+  return matches.some(match => {
+    if (match.category !== category) return false;
+    const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
+    const sameDate = match.startISO && fixture.startISO && match.startISO.slice(0, 10) === fixture.startISO.slice(0, 10);
+    return sameTeams && sameDate;
+  });
+}
+
 const WOMENS_RESULT_FIXTURES = [
   {
     id: "wwc-2026-24-result",
@@ -1251,26 +1302,8 @@ async function scrapeWomensT20WorldCup() {
   }));
 
   const scheduledIndiaMatches = INDIA_FUTURE_FIXTURES
-    .filter(fixture => Date.parse(fixture.startISO) > Date.now())
-    .filter(fixture => !matches.some(match => {
-      if (match.category !== INDIA_CATEGORY) return false;
-      const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
-      const sameDate = match.startISO && fixture.startISO && match.startISO.slice(0, 10) === fixture.startISO.slice(0, 10);
-      return sameTeams && sameDate;
-    }))
-    .map(fixture => ({
-      ...fixture,
-      name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
-      category: INDIA_CATEGORY,
-      state: "Upcoming",
-      status: fixture.venue ? `Starts ${fixture.startISO.slice(0, 10)} - ${fixture.venue}` : `Starts ${fixture.startISO.slice(0, 10)}`,
-      source: "Local schedule copy",
-      score: "Match not started",
-      scores: [],
-      liveDetails: { venue: fixture.venue || "" },
-      liveScorecard: null,
-      rawText: ""
-    }));
+    .filter(fixture => !hasSameScheduledMatch(matches, fixture, INDIA_CATEGORY))
+    .map(fixture => scheduleFixtureToMatch(fixture, INDIA_CATEGORY));
 
   const scheduledTestMatches = TEST_CHAMPIONSHIP_FIXTURES
     .filter(fixture => Date.parse(fixture.startISO) > Date.now())
@@ -1295,27 +1328,8 @@ async function scrapeWomensT20WorldCup() {
     }));
 
   const scheduledWomensMatches = WOMENS_FUTURE_FIXTURES
-    .filter(fixture => Date.parse(fixture.startISO) > Date.now())
-    .filter(fixture => !matches.some(match => {
-      if (match.category !== WOMENS_CATEGORY) return false;
-      const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
-      const sameDate = match.startISO && match.startISO.slice(0, 10) === fixture.startISO.slice(0, 10);
-      return sameTeams && sameDate;
-    }))
-    .map(fixture => ({
-      ...fixture,
-      name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
-      category: WOMENS_CATEGORY,
-      state: "Upcoming",
-      status: `Starts ${fixture.startISO.slice(0, 10)} - ${fixture.venue}`,
-      source: "Local schedule copy",
-      score: "Match not started",
-      scores: [],
-      playerOfMatch: "",
-      liveDetails: { venue: fixture.venue },
-      liveScorecard: null,
-      rawText: ""
-    }));
+    .filter(fixture => !hasSameScheduledMatch(matches, fixture, WOMENS_CATEGORY))
+    .map(fixture => scheduleFixtureToMatch(fixture, WOMENS_CATEGORY));
 
   const resultWomensMatches = WOMENS_RESULT_FIXTURES
     .filter(fixture => !matches.some(match => {
