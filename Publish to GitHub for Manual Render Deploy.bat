@@ -2,12 +2,16 @@
 setlocal
 cd /d "%~dp0"
 
-echo Publishing Cricket and Other Sports dashboards to GitHub...
-echo Render auto-deploy is OFF. After this finishes, deploy manually in Render.
+echo Uploading dashboard changes to GitHub...
+echo Render auto-deploy is OFF, so this will not make the website live by itself.
+echo.
+
 git config user.name "Vipul"
 git config user.email "vipulavnee@users.noreply.github.com"
+
 git add -u
 git add -- package.json render.yaml server-cricket.js server-other-sports.js public\cricket-dashboard.html public\other-sports-dashboard.html "Start Cricket Dashboard.bat" "Start Other Sports Dashboard.bat" "Publish Cricket Dashboard to Render.bat" "Publish to GitHub for Manual Render Deploy.bat"
+
 git diff --cached --quiet
 if not errorlevel 1 goto :push
 
@@ -19,10 +23,15 @@ git push origin main
 if errorlevel 1 goto :failed
 
 echo.
-echo Uploaded to GitHub.
-echo Now open Render and manually deploy the service you want live.
-echo Cricket: womens-t20-world-cup-dashboard / cricket-dashboard
-echo Other Sports: other-sports-dashboard
+echo Uploaded to GitHub successfully.
+echo Next step: go to Render and manually deploy whichever service you want live.
+echo.
+echo Cricket URL after deploy:
+echo https://womens-t20-world-cup-dashboard.onrender.com/cricket-dashboard.html
+echo.
+echo Other Sports URL after deploy:
+echo https://other-sports-dashboard.onrender.com/other-sports-dashboard.html
+echo.
 pause
 exit /b 0
 
