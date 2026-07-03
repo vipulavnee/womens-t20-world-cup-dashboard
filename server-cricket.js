@@ -63,6 +63,24 @@ const INDIA_FUTURE_FIXTURES = [
   { id: "espn-eng-ind-2026-odi-3", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true }
 ];
 
+const INDIA_RESULT_FIXTURES = [
+  {
+    id: "eng-ind-2026-t20-1-result",
+    matchNo: "1st T20I",
+    teams: ["England", "India"],
+    startISO: "2026-07-01T12:00:00.000Z",
+    venue: "Riverside Ground, Chester-le-Street",
+    url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results",
+    state: "Finished",
+    status: "No result - match abandoned due to rain",
+    score: "IND 189/7 (20 ov) | ENG did not bat",
+    scores: [
+      { team: "IND", score: "189/7", overs: "20" }
+    ],
+    playerOfMatch: ""
+  }
+];
+
 const TEST_CHAMPIONSHIP_FIXTURES = [
   {
     id: "wtc-eng-nz-2026-3",
@@ -1305,6 +1323,23 @@ async function scrapeWomensT20WorldCup() {
     .filter(fixture => !hasSameScheduledMatch(matches, fixture, INDIA_CATEGORY))
     .map(fixture => scheduleFixtureToMatch(fixture, INDIA_CATEGORY));
 
+  const resultIndiaMatches = INDIA_RESULT_FIXTURES
+    .filter(fixture => !matches.some(match => {
+      if (match.category !== INDIA_CATEGORY) return false;
+      const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
+      const sameDate = match.startISO && fixture.startISO && match.startISO.slice(0, 10) === fixture.startISO.slice(0, 10);
+      return sameTeams && sameDate;
+    }))
+    .map(fixture => ({
+      ...fixture,
+      name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
+      category: INDIA_CATEGORY,
+      source: "Local result copy",
+      liveDetails: { venue: fixture.venue || "" },
+      liveScorecard: null,
+      rawText: fixture.status
+    }));
+
   const scheduledTestMatches = TEST_CHAMPIONSHIP_FIXTURES
     .filter(fixture => Date.parse(fixture.startISO) > Date.now())
     .filter(fixture => !matches.some(match => {
@@ -1348,7 +1383,7 @@ async function scrapeWomensT20WorldCup() {
       rawText: fixture.status
     }));
 
-  return dedupeDashboardMatches([...matches, ...scheduledIndiaMatches, ...scheduledTestMatches, ...scheduledWomensMatches, ...resultWomensMatches]).sort((a, b) => {
+  return dedupeDashboardMatches([...matches, ...scheduledIndiaMatches, ...resultIndiaMatches, ...scheduledTestMatches, ...scheduledWomensMatches, ...resultWomensMatches]).sort((a, b) => {
     const rank = { Live: 1, Upcoming: 2, Finished: 3, Unknown: 4 };
     return (rank[a.state] || 9) - (rank[b.state] || 9);
   });
