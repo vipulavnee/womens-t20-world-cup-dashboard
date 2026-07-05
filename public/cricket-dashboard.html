@@ -190,7 +190,8 @@ let selectedMatchId = "";
 let userSelected = false;
 let matchRequestInFlight = false;
 const TOURNAMENT_CATEGORY = "Women's T20 World Cup";
-let activeCompetition = TOURNAMENT_CATEGORY;
+const DEFAULT_CATEGORY = "Indian Men";
+let activeCompetition = DEFAULT_CATEGORY;
 
 const LOCAL_SCHEDULE_COPY = [
   ["copy-wwc-19","Women's T20 World Cup","19th Match · Group B","New Zealand Women","Scotland Women","2026-06-23T09:30:00.000Z","County Ground, Bristol",false],
@@ -466,8 +467,12 @@ function dedupeDashboardMatches(list){
     const ordinal=matchOrdinal(match);
     const date=String(match?.startISO||"").slice(0,10);
     const forceDateKey=/local (?:schedule pending result|result copy|verified result)/i.test(String(match?.source||""))||match?.category==="Indian Men"||match?.category==="Test Championship";
-    const stage=!forceDateKey&&ordinal?`${ordinal}-${fixtureFormatKey(match)}`:date||String(match?.id||match?.name||"");
-    const key=`${match?.category||""}|${teams}|${stage}`;
+    const stage=match?.category===TOURNAMENT_CATEGORY&&ordinal
+      ? `${ordinal}-${fixtureFormatKey(match)}`
+      : !forceDateKey&&ordinal?`${ordinal}-${fixtureFormatKey(match)}`:date||String(match?.id||match?.name||"");
+    const key=match?.category===TOURNAMENT_CATEGORY&&ordinal
+      ? `${match?.category||""}|${stage}`
+      : `${match?.category||""}|${teams}|${stage}`;
     const previous=byKey.get(key);
     if(!previous||scoreMatch(match)>scoreMatch(previous))byKey.set(key,match);
   }
@@ -1620,7 +1625,7 @@ async function loadMatches(){
 try{
   localStorage.removeItem("activeCompetition");
   localStorage.removeItem("cricketDashboardMatchesV2");
-  activeCompetition=TOURNAMENT_CATEGORY;
+  activeCompetition=DEFAULT_CATEGORY;
   $("competitionSelect").value=activeCompetition;
   $("competitionSubtitle").textContent=`${competitionLabel()} · Live data`;
   allMatches=[];
