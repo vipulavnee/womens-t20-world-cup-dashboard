@@ -24,7 +24,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .score-row b,.score-row span{font-size:26px;font-weight:950;color:#fff}.score-row span{margin-left:auto;min-width:72px;text-align:right}.score-row small{font-size:13px;font-weight:950;color:#fff}
 .team-football{background:linear-gradient(135deg,#0891b2,#1d4ed8)!important}.team-tennis{background:linear-gradient(135deg,#84cc16,#16a34a)!important}
 .tennis-score-table{border:1px solid #ffffff28;border-radius:13px;overflow:hidden;background:rgba(4,17,31,.72)}
-.tennis-score-head,.tennis-score-player{display:grid;grid-template-columns:minmax(150px,1fr) repeat(var(--sets,1),48px) 66px;align-items:center;gap:5px;padding:5px 7px}
+.tennis-score-head,.tennis-score-player{display:grid;grid-template-columns:minmax(150px,1fr) repeat(var(--sets,1),48px);align-items:center;gap:5px;padding:5px 7px}
 .tennis-score-head{background:#00000044;color:#cbd5e1;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
 .tennis-score-player{border-top:1px solid #ffffff18}
 .tennis-score-player.match-winner{background:linear-gradient(90deg,#00ff8526,#1d4ed826)}
@@ -172,8 +172,13 @@ function footballProgress(e){
   if(e?.sport!=="Football")return "";
   if(stateOf(e)==="Finished")return "90/90 min";
   if(stateOf(e)==="Upcoming")return "0/90 min";
+  const text=String(e.status||"").toLowerCase();
+  if(text.includes("half"))return "Half-time";
   const minute=footballMinuteNumber(e);
-  return minute?`${Math.min(minute,90)}/90 min`:"Live";
+  if(!minute)return "Live";
+  if(minute>90)return `${minute}' extra time`;
+  const stoppage=/\+/.test(String(e.clock||e.status||""));
+  return stoppage?`${minute}+ / 90 min`:`${minute}/90 min`;
 }
 function footballPhase(e){
   if(e?.sport!=="Football")return displayStatus(e);
@@ -281,6 +286,16 @@ function tennisSetList(t){if(Array.isArray(t?.sets)&&t.sets.length)return t.sets
 function tennisSetValue(v){return Number(String(v||"").match(/\d+/)?.[0])}
 function tennisSetComplete(a,b){const x=tennisSetValue(a),y=tennisSetValue(b);if(!Number.isFinite(x)||!Number.isFinite(y))return false;const hi=Math.max(x,y),lo=Math.min(x,y);return (hi>=6&&hi-lo>=2)||(hi===7&&lo>=5)}
 function tennisSetsWon(team,opp){const a=tennisSetList(team),b=tennisSetList(opp);return a.reduce((n,v,i)=>n+(tennisSetComplete(v,b[i])&&tennisSetValue(v)>tennisSetValue(b[i])?1:0),0)}
+function tennisMatchStatus(e){
+  if(e?.sport!=="Tennis")return displayStatus(e);
+  const teams=(e.teams||[]).slice(0,2);
+  const base=displayStatus(e);
+  if(teams.length<2)return base;
+  const a=tennisSetsWon(teams[0],teams[1]),b=tennisSetsWon(teams[1],teams[0]);
+  const shortA=tennisPlainName(teams[0]),shortB=tennisPlainName(teams[1]);
+  const sets=`Sets: ${shortA} ${a} - ${b} ${shortB}`;
+  return stateOf(e)==="Upcoming"?base:`${base} • ${sets}`;
+}
 function tennisFullLabelText(t){return `${t?.seed?`#${t.seed} `:""}${t.name||t.short||"Player"}${t.country?` • ${t.country}`:""}`}
 function tennisFullLabel(t){return `${rankBadge(t?.seed)}${t.name||t.short||"Player"}${countryBadge(t?.country)}`}
 function tennisPoint(t){const p=String(t?.point??"").trim();return p&&p!=="null"?p:""}
@@ -289,11 +304,11 @@ function tennisScoreRows(e){
   if(teams.length<2)return`<div class="score-row"><b>Score</b><span>${e.scoreText||"--"}</span><small>${stateOf(e)}</small></div>`;
   const sets=teams.map(tennisSetList),max=Math.max(1,...sets.map(s=>s.length));
   const hasPoints=stateOf(e)==="Live"&&teams.some(t=>tennisPoint(t));
-  const grid=`grid-template-columns:minmax(150px,1fr) repeat(${max},48px) ${hasPoints?"58px ":""}66px`;
-  const header=`<div class="tennis-score-head" style="${grid}"><div>Player</div>${Array.from({length:max},(_,i)=>`<div>${i===max-1&&stateOf(e)==="Live"?"Games":`Set ${i+1}`}</div>`).join("")}${hasPoints?`<div>Point</div>`:""}<div>Sets</div></div>`;
+  const grid=`grid-template-columns:minmax(150px,1fr) repeat(${max},48px) ${hasPoints?"58px":""}`;
+  const header=`<div class="tennis-score-head" style="${grid}"><div>Player</div>${Array.from({length:max},(_,i)=>`<div>${i===max-1&&stateOf(e)==="Live"?"Games":`Set ${i+1}`}</div>`).join("")}${hasPoints?`<div>Point</div>`:""}</div>`;
   const rows=teams.map((t,row)=>{
     const opp=teams[row?0:1],own=sets[row],other=sets[row?0:1];
-    return `<div class="tennis-score-player ${stateOf(e)==="Finished"&&t.winner?"match-winner":""}" style="${grid}"><div class="tennis-player-name" title="${tennisFullLabelText(t)}">${tennisFullLabel(t)}</div>${Array.from({length:max},(_,i)=>{const v=own[i]||"--",lead=Number.isFinite(tennisSetValue(v))&&Number.isFinite(tennisSetValue(other[i]))&&tennisSetValue(v)>tennisSetValue(other[i]);return`<div class="tennis-set-cell ${lead?"set-leader":""} ${i===max-1&&stateOf(e)==="Live"?"current-set":""}">${v}</div>`}).join("")}${hasPoints?`<div class="tennis-set-cell current-set">${tennisPoint(t)||"--"}</div>`:""}<div class="tennis-sets-won">${tennisSetsWon(t,opp)}</div></div>`;
+    return `<div class="tennis-score-player ${stateOf(e)==="Finished"&&t.winner?"match-winner":""}" style="${grid}"><div class="tennis-player-name" title="${tennisFullLabelText(t)}">${tennisFullLabel(t)}</div>${Array.from({length:max},(_,i)=>{const v=own[i]||"--",lead=Number.isFinite(tennisSetValue(v))&&Number.isFinite(tennisSetValue(other[i]))&&tennisSetValue(v)>tennisSetValue(other[i]);return`<div class="tennis-set-cell ${lead?"set-leader":""} ${i===max-1&&stateOf(e)==="Live"?"current-set":""}">${v}</div>`}).join("")}${hasPoints?`<div class="tennis-set-cell current-set">${tennisPoint(t)||"--"}</div>`:""}</div>`;
   }).join("");
   return `<div class="tennis-score-table">${header}${rows}</div>`;
 }
@@ -322,7 +337,7 @@ function renderCards(e){
     return;
   }
   if(e.sport==="Tennis"){
-    $("cardsMount").innerHTML=`<div class="cards tennis-cards"><div class="card blue"><small>Round:</small><b>${cleanTennisStage(e.stage)||stateOf(e)}</b></div><div class="card orange"><small>Match:</small><b>${displayStatus(e)}</b></div></div>`;
+    $("cardsMount").innerHTML=`<div class="cards tennis-cards"><div class="card blue"><small>Round:</small><b>${cleanTennisStage(e.stage)||stateOf(e)}</b></div><div class="card orange"><small>Match status:</small><b>${tennisMatchStatus(e)}</b></div></div>`;
     return;
   }
   const next=nextOther();$("cardsMount").innerHTML=`<div class="cards"><div class="card green"><small>Sport:</small><b>${eventLabel()}</b></div><div class="card blue"><small>Phase:</small><b>${e.stage||stateOf(e)}</b></div><div class="card orange"><small>Status:</small><b>${stateOf(e)==="Live"?"Live":displayStatus(e)}</b></div><div class="card purple"><small>Next Other:</small><b>${next?countdown(next):"No other upcoming"}</b></div></div>`;
