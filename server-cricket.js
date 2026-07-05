@@ -61,23 +61,7 @@ const INDIA_FUTURE_FIXTURES = [
   { id: "espn-eng-ind-2026-odi-3", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T13:30:00.000Z", venue: "Lord's, London", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" }
 ];
 
-const INDIA_RESULT_FIXTURES = [
-  {
-    id: "eng-ind-2026-t20-1-result",
-    matchNo: "1st T20I",
-    teams: ["England", "India"],
-    startISO: "2026-07-01T12:00:00.000Z",
-    venue: "Riverside Ground, Chester-le-Street",
-    url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results",
-    state: "Finished",
-    status: "No result - match abandoned due to rain",
-    score: "IND 189/7 (20 ov) | ENG did not bat",
-    scores: [
-      { team: "IND", score: "189/7", overs: "20" }
-    ],
-    playerOfMatch: ""
-  }
-];
+const INDIA_RESULT_FIXTURES = [];
 
 const TEST_CHAMPIONSHIP_FIXTURES = [
   {
