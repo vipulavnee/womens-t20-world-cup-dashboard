@@ -1420,7 +1420,8 @@ function dedupeDashboardMatches(list) {
     if (!teams) continue;
     const ordinal = matchOrdinalFromText(match);
     const date = String(match?.startISO || "").slice(0, 10);
-    const stage = ordinal ? `${ordinal}-${fixtureFormatKey(match)}` : date || String(match?.id || match?.name || "");
+    const isPendingSchedule = /local schedule pending result/i.test(String(match?.source || ""));
+    const stage = !isPendingSchedule && ordinal ? `${ordinal}-${fixtureFormatKey(match)}` : date || String(match?.id || match?.name || "");
     const key = `${match?.category || ""}|${teams}|${stage}`;
     const previous = byKey.get(key);
     if (!previous || scoreMatch(match) > scoreMatch(previous)) byKey.set(key, match);

@@ -450,7 +450,8 @@ function dedupeDashboardMatches(list){
     if(!teams)continue;
     const ordinal=matchOrdinal(match);
     const date=String(match?.startISO||"").slice(0,10);
-    const stage=ordinal?`${ordinal}-${fixtureFormatKey(match)}`:date||String(match?.id||match?.name||"");
+    const isPendingSchedule=/local schedule pending result/i.test(String(match?.source||""));
+    const stage=!isPendingSchedule&&ordinal?`${ordinal}-${fixtureFormatKey(match)}`:date||String(match?.id||match?.name||"");
     const key=`${match?.category||""}|${teams}|${stage}`;
     const previous=byKey.get(key);
     if(!previous||scoreMatch(match)>scoreMatch(previous))byKey.set(key,match);
@@ -477,6 +478,16 @@ const TEAM_SHORT = {
   "South Africa":"RSA","Sri Lanka":"SL","West Indies":"WI","Zimbabwe":"ZIM"
 };
 const teamShort = t => TEAM_SHORT[String(t || "")] || String(t || "");
+const teamKeyForCompare = t => teamShort(t).toUpperCase().replace(/[^A-Z0-9]/g,"");
+function displayTeamShort(t){
+  const raw=teamShort(t);
+  const key=teamKeyForCompare(raw);
+  return Object.values(TEAM_SHORT).find(short=>teamKeyForCompare(short)===key)||raw;
+}
+function opponentOf(teams, team){
+  const key=teamKeyForCompare(team);
+  return teams.find(t=>teamKeyForCompare(t)!==key)||teams[1]||teams[0]||"Opponent";
+}
 
 function womenLabel(value){
   return String(value||"")
@@ -1236,7 +1247,7 @@ ${st==="Finished"&&match?.playerOfMatch?`<div><span class="player-award">Player 
 
 function winPredictor(match){
   const st = stateOf(match);
-  const teams = Array.isArray(match?.teams) ? match.teams.map(teamShort) : [];
+  const teams = Array.isArray(match?.teams) ? match.teams.map(displayTeamShort) : [];
   const scores = Array.isArray(match?.scores) ? match.scores : [];
 
   if(st === "Upcoming") return ["Pre-match", "blue"];
@@ -1244,8 +1255,10 @@ function winPredictor(match){
 
   if(st === "Finished"){
     const status = String(match?.status || "");
+    if(/no result|abandoned|pending/i.test(status)) return ["No result", "blue"];
+    if(/\btie|tied\b/i.test(status)) return ["Tie", "blue"];
     const fullWinner = (match?.teams || []).find(t => status.toUpperCase().includes(String(t).toUpperCase()));
-    const winner = fullWinner ? teamShort(fullWinner) : "Winner";
+    const winner = fullWinner ? displayTeamShort(fullWinner) : "Result";
     return [`${winner} 100%`, "purple"];
   }
 
@@ -1253,8 +1266,8 @@ function winPredictor(match){
     const chase=testChaseData(match);
     if(!chase)return ["Available in the 4th innings", "blue"];
 
-    const chaseShort=teamShort(chase.team);
-    const defendTeam=teams.find(team=>team!==chaseShort)||teams[0]||"Opponent";
+    const chaseShort=displayTeamShort(chase.team);
+    const defendTeam=opponentOf(teams,chaseShort);
     if(chase.needed<=0)return [`${chaseShort} 100%`, "pink"];
     if(chase.wicketsLeft<=0)return [`${defendTeam} 100%`, "blue-team"];
 
@@ -1287,8 +1300,8 @@ function winPredictor(match){
   // ---------- FIRST INNINGS MODEL ----------
   if(scores.length < 2 || innings(match) <= 1){
     const bat = scores[0];
-    const batTeam = bat?.team || teams[0];
-    const bowlTeam = teams.find(t => t !== batTeam) || teams[1];
+    const batTeam = displayTeamShort(bat?.team || teams[0]);
+    const bowlTeam = opponentOf(teams, batTeam);
 
     const r = runs(bat?.score);
     const o = oversDec(bat?.overs);
@@ -1367,8 +1380,8 @@ function winPredictor(match){
     }
   }
 
-  const chaseTeam = chase?.team || teams[1];
-  const defendTeam = defend?.team || teams.find(t => t !== chaseTeam) || teams[0];
+  const chaseTeam = displayTeamShort(chase?.team || teams[1]);
+  const defendTeam = displayTeamShort(defend?.team || opponentOf(teams, chaseTeam));
 
   const defendRuns = runs(defend?.score);
   const chaseRuns = runs(chase?.score);
