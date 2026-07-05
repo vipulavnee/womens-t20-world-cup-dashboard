@@ -51,8 +51,6 @@ const INDIA_CATEGORY = "Indian Men";
 const ENG_NZ_CATEGORY = "Test Championship";
 
 const INDIA_FUTURE_FIXTURES = [
-  { id: "espn-ire-ind-2026-1", matchNo: "1st T20I", teams: ["Ireland", "India"], startISO: "2026-06-26T14:00:00.000Z", venue: "Civil Service Cricket Club, Belfast", url: "https://www.espncricinfo.com/series/india-in-ireland-2026-1528532/match-schedule-fixtures-and-results" },
-  { id: "espn-ire-ind-2026-2", matchNo: "2nd T20I", teams: ["Ireland", "India"], startISO: "2026-06-28T14:00:00.000Z", venue: "Civil Service Cricket Club, Belfast", url: "https://www.espncricinfo.com/series/india-in-ireland-2026-1528532/match-schedule-fixtures-and-results" },
   { id: "espn-eng-ind-2026-t20-1", matchNo: "1st T20I", teams: ["England", "India"], startISO: "2026-07-01T13:30:00.000Z", venue: "Riverside Ground, Chester-le-Street", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
   { id: "espn-eng-ind-2026-t20-2", matchNo: "2nd T20I", teams: ["England", "India"], startISO: "2026-07-04T13:30:00.000Z", venue: "Old Trafford, Manchester", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
   { id: "espn-eng-ind-2026-t20-3", matchNo: "3rd T20I", teams: ["England", "India"], startISO: "2026-07-07T13:30:00.000Z", venue: "Trent Bridge, Nottingham", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
@@ -64,36 +62,6 @@ const INDIA_FUTURE_FIXTURES = [
 ];
 
 const INDIA_RESULT_FIXTURES = [
-  {
-    id: "ire-ind-2026-t20-1-result",
-    matchNo: "1st T20I",
-    teams: ["Ireland", "India"],
-    startISO: "2026-06-26T12:30:00.000Z",
-    venue: "Civil Service Cricket Club, Belfast",
-    state: "Finished",
-    status: "Ireland won by 34 runs",
-    score: "IRE 182/9 (20 ov) | IND 148/10 (18.5 ov)",
-    scores: [
-      { team: "IRE", score: "182/9", overs: "20" },
-      { team: "IND", score: "148/10", overs: "18.5" }
-    ],
-    playerOfMatch: ""
-  },
-  {
-    id: "ire-ind-2026-t20-2-result",
-    matchNo: "2nd T20I",
-    teams: ["Ireland", "India"],
-    startISO: "2026-06-28T12:30:00.000Z",
-    venue: "Civil Service Cricket Club, Belfast",
-    state: "Finished",
-    status: "Ireland won by 1 run",
-    score: "IRE 154/8 (20 ov) | IND 153/9 (20 ov)",
-    scores: [
-      { team: "IRE", score: "154/8", overs: "20" },
-      { team: "IND", score: "153/9", overs: "20" }
-    ],
-    playerOfMatch: ""
-  },
   {
     id: "eng-ind-2026-t20-1-result",
     matchNo: "1st T20I",
