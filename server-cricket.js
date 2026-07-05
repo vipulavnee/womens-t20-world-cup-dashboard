@@ -53,17 +53,47 @@ const ENG_NZ_CATEGORY = "Test Championship";
 const INDIA_FUTURE_FIXTURES = [
   { id: "espn-ire-ind-2026-1", matchNo: "1st T20I", teams: ["Ireland", "India"], startISO: "2026-06-26T14:00:00.000Z", venue: "Civil Service Cricket Club, Belfast", url: "https://www.espncricinfo.com/series/india-in-ireland-2026-1528532/match-schedule-fixtures-and-results" },
   { id: "espn-ire-ind-2026-2", matchNo: "2nd T20I", teams: ["Ireland", "India"], startISO: "2026-06-28T14:00:00.000Z", venue: "Civil Service Cricket Club, Belfast", url: "https://www.espncricinfo.com/series/india-in-ireland-2026-1528532/match-schedule-fixtures-and-results" },
-  { id: "espn-eng-ind-2026-t20-1", matchNo: "1st T20I", teams: ["England", "India"], startISO: "2026-07-01T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
-  { id: "espn-eng-ind-2026-t20-2", matchNo: "2nd T20I", teams: ["England", "India"], startISO: "2026-07-04T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
-  { id: "espn-eng-ind-2026-t20-3", matchNo: "3rd T20I", teams: ["England", "India"], startISO: "2026-07-07T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
-  { id: "espn-eng-ind-2026-t20-4", matchNo: "4th T20I", teams: ["England", "India"], startISO: "2026-07-09T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
-  { id: "espn-eng-ind-2026-t20-5", matchNo: "5th T20I", teams: ["England", "India"], startISO: "2026-07-11T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
-  { id: "espn-eng-ind-2026-odi-1", matchNo: "1st ODI", teams: ["England", "India"], startISO: "2026-07-14T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
-  { id: "espn-eng-ind-2026-odi-2", matchNo: "2nd ODI", teams: ["England", "India"], startISO: "2026-07-16T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true },
-  { id: "espn-eng-ind-2026-odi-3", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T12:00:00.000Z", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results", timeTBA: true }
+  { id: "espn-eng-ind-2026-t20-1", matchNo: "1st T20I", teams: ["England", "India"], startISO: "2026-07-01T13:30:00.000Z", venue: "Riverside Ground, Chester-le-Street", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
+  { id: "espn-eng-ind-2026-t20-2", matchNo: "2nd T20I", teams: ["England", "India"], startISO: "2026-07-04T13:30:00.000Z", venue: "Old Trafford, Manchester", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
+  { id: "espn-eng-ind-2026-t20-3", matchNo: "3rd T20I", teams: ["England", "India"], startISO: "2026-07-07T13:30:00.000Z", venue: "Trent Bridge, Nottingham", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
+  { id: "espn-eng-ind-2026-t20-4", matchNo: "4th T20I", teams: ["England", "India"], startISO: "2026-07-09T13:30:00.000Z", venue: "County Ground, Bristol", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
+  { id: "espn-eng-ind-2026-t20-5", matchNo: "5th T20I", teams: ["England", "India"], startISO: "2026-07-11T13:30:00.000Z", venue: "Rose Bowl, Southampton", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
+  { id: "espn-eng-ind-2026-odi-1", matchNo: "1st ODI", teams: ["England", "India"], startISO: "2026-07-14T13:30:00.000Z", venue: "Edgbaston, Birmingham", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
+  { id: "espn-eng-ind-2026-odi-2", matchNo: "2nd ODI", teams: ["England", "India"], startISO: "2026-07-16T13:30:00.000Z", venue: "Sophia Gardens, Cardiff", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
+  { id: "espn-eng-ind-2026-odi-3", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T13:30:00.000Z", venue: "Lord's, London", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" }
 ];
 
 const INDIA_RESULT_FIXTURES = [
+  {
+    id: "ire-ind-2026-t20-1-result",
+    matchNo: "1st T20I",
+    teams: ["Ireland", "India"],
+    startISO: "2026-06-26T12:30:00.000Z",
+    venue: "Civil Service Cricket Club, Belfast",
+    state: "Finished",
+    status: "Ireland won by 34 runs",
+    score: "IRE 182/9 (20 ov) | IND 148/10 (18.5 ov)",
+    scores: [
+      { team: "IRE", score: "182/9", overs: "20" },
+      { team: "IND", score: "148/10", overs: "18.5" }
+    ],
+    playerOfMatch: ""
+  },
+  {
+    id: "ire-ind-2026-t20-2-result",
+    matchNo: "2nd T20I",
+    teams: ["Ireland", "India"],
+    startISO: "2026-06-28T12:30:00.000Z",
+    venue: "Civil Service Cricket Club, Belfast",
+    state: "Finished",
+    status: "Ireland won by 1 run",
+    score: "IRE 154/8 (20 ov) | IND 153/9 (20 ov)",
+    scores: [
+      { team: "IRE", score: "154/8", overs: "20" },
+      { team: "IND", score: "153/9", overs: "20" }
+    ],
+    playerOfMatch: ""
+  },
   {
     id: "eng-ind-2026-t20-1-result",
     matchNo: "1st T20I",
@@ -182,9 +212,22 @@ function scheduledFixtureState(fixture, now = Date.now()) {
   return now - start <= matchHours * 60 * 60 * 1000 ? "Live" : "Finished";
 }
 
+function fixtureStartLabel(fixture) {
+  const start = new Date(fixture.startISO || "");
+  if (!Number.isFinite(start.getTime())) return "time TBA";
+  return start.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  }) + " IST";
+}
+
 function scheduledFixtureStatus(fixture, state) {
   if (state === "Upcoming") {
-    return fixture.venue ? `Starts ${fixture.startISO.slice(0, 10)} - ${fixture.venue}` : `Starts ${fixture.startISO.slice(0, 10)}`;
+    return fixture.venue ? `Starts ${fixtureStartLabel(fixture)} - ${fixture.venue}` : `Starts ${fixtureStartLabel(fixture)}`;
   }
   if (state === "Live") return "Match in progress - live score pending";
   return "Result pending update";
@@ -1420,8 +1463,8 @@ function dedupeDashboardMatches(list) {
     if (!teams) continue;
     const ordinal = matchOrdinalFromText(match);
     const date = String(match?.startISO || "").slice(0, 10);
-    const isPendingSchedule = /local schedule pending result/i.test(String(match?.source || ""));
-    const stage = !isPendingSchedule && ordinal ? `${ordinal}-${fixtureFormatKey(match)}` : date || String(match?.id || match?.name || "");
+    const isLocalFallback = /local (?:schedule pending result|result copy)/i.test(String(match?.source || ""));
+    const stage = !isLocalFallback && ordinal ? `${ordinal}-${fixtureFormatKey(match)}` : date || String(match?.id || match?.name || "");
     const key = `${match?.category || ""}|${teams}|${stage}`;
     const previous = byKey.get(key);
     if (!previous || scoreMatch(match) > scoreMatch(previous)) byKey.set(key, match);

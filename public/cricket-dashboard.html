@@ -205,14 +205,14 @@ const LOCAL_SCHEDULE_COPY = [
   ["copy-wwc-33","Women's T20 World Cup","33rd Match · Final","Australia Women","England Women","2026-07-05T13:30:00.000Z","Lord's, London",false],
   ["copy-ire-ind-1","Indian Men","1st T20I","Ireland","India","2026-06-26T14:00:00.000Z","Civil Service Cricket Club, Belfast",false],
   ["copy-ire-ind-2","Indian Men","2nd T20I","Ireland","India","2026-06-28T14:00:00.000Z","Civil Service Cricket Club, Belfast",false],
-  ["copy-eng-ind-t20-1","Indian Men","1st T20I","England","India","2026-07-01T12:00:00.000Z","England",true],
-  ["copy-eng-ind-t20-2","Indian Men","2nd T20I","England","India","2026-07-04T12:00:00.000Z","England",true],
-  ["copy-eng-ind-t20-3","Indian Men","3rd T20I","England","India","2026-07-07T12:00:00.000Z","England",true],
-  ["copy-eng-ind-t20-4","Indian Men","4th T20I","England","India","2026-07-09T12:00:00.000Z","England",true],
-  ["copy-eng-ind-t20-5","Indian Men","5th T20I","England","India","2026-07-11T12:00:00.000Z","England",true],
-  ["copy-eng-ind-odi-1","Indian Men","1st ODI","England","India","2026-07-14T12:00:00.000Z","England",true],
-  ["copy-eng-ind-odi-2","Indian Men","2nd ODI","England","India","2026-07-16T12:00:00.000Z","England",true],
-  ["copy-eng-ind-odi-3","Indian Men","3rd ODI","England","India","2026-07-19T12:00:00.000Z","England",true],
+  ["copy-eng-ind-t20-1","Indian Men","1st T20I","England","India","2026-07-01T13:30:00.000Z","Riverside Ground, Chester-le-Street",false],
+  ["copy-eng-ind-t20-2","Indian Men","2nd T20I","England","India","2026-07-04T13:30:00.000Z","Old Trafford, Manchester",false],
+  ["copy-eng-ind-t20-3","Indian Men","3rd T20I","England","India","2026-07-07T13:30:00.000Z","Trent Bridge, Nottingham",false],
+  ["copy-eng-ind-t20-4","Indian Men","4th T20I","England","India","2026-07-09T13:30:00.000Z","County Ground, Bristol",false],
+  ["copy-eng-ind-t20-5","Indian Men","5th T20I","England","India","2026-07-11T13:30:00.000Z","Rose Bowl, Southampton",false],
+  ["copy-eng-ind-odi-1","Indian Men","1st ODI","England","India","2026-07-14T13:30:00.000Z","Edgbaston, Birmingham",false],
+  ["copy-eng-ind-odi-2","Indian Men","2nd ODI","England","India","2026-07-16T13:30:00.000Z","Sophia Gardens, Cardiff",false],
+  ["copy-eng-ind-odi-3","Indian Men","3rd ODI","England","India","2026-07-19T13:30:00.000Z","Lord's, London",false],
   ["copy-wtc-eng-nz-3","Test Championship","3rd Test","England","New Zealand","2026-06-25T10:00:00.000Z","Trent Bridge, Nottingham",false],
   ["copy-wtc-wi-sl-1","Test Championship","1st Test","West Indies","Sri Lanka","2026-06-25T14:00:00.000Z","Sir Vivian Richards Stadium, North Sound, Antigua",false],
   ["copy-wtc-wi-sl-2","Test Championship","2nd Test","West Indies","Sri Lanka","2026-07-03T14:00:00.000Z","Sir Vivian Richards Stadium, North Sound, Antigua",false]
@@ -244,6 +244,46 @@ function scheduleFallback(match){
 }
 
 const LOCAL_RESULT_COPY = [
+  {
+    id:"copy-ire-ind-t20-1-result",
+    category:"Indian Men",
+    matchNo:"1st T20I",
+    teams:["Ireland","India"],
+    name:"Ireland vs India",
+    startISO:"2026-06-26T12:30:00.000Z",
+    venue:"Civil Service Cricket Club, Belfast",
+    state:"Finished",
+    status:"Ireland won by 34 runs",
+    source:"Local result copy",
+    score:"IRE 182/9 (20 ov) | IND 148/10 (18.5 ov)",
+    scores:[
+      {team:"IRE",score:"182/9",overs:"20"},
+      {team:"IND",score:"148/10",overs:"18.5"}
+    ],
+    playerOfMatch:"",
+    liveDetails:{venue:"Civil Service Cricket Club, Belfast"},
+    rawText:"Ireland won by 34 runs"
+  },
+  {
+    id:"copy-ire-ind-t20-2-result",
+    category:"Indian Men",
+    matchNo:"2nd T20I",
+    teams:["Ireland","India"],
+    name:"Ireland vs India",
+    startISO:"2026-06-28T12:30:00.000Z",
+    venue:"Civil Service Cricket Club, Belfast",
+    state:"Finished",
+    status:"Ireland won by 1 run",
+    source:"Local result copy",
+    score:"IRE 154/8 (20 ov) | IND 153/9 (20 ov)",
+    scores:[
+      {team:"IRE",score:"154/8",overs:"20"},
+      {team:"IND",score:"153/9",overs:"20"}
+    ],
+    playerOfMatch:"",
+    liveDetails:{venue:"Civil Service Cricket Club, Belfast"},
+    rawText:"Ireland won by 1 run"
+  },
   {
     id:"copy-eng-ind-t20-1-result",
     category:"Indian Men",
@@ -450,8 +490,8 @@ function dedupeDashboardMatches(list){
     if(!teams)continue;
     const ordinal=matchOrdinal(match);
     const date=String(match?.startISO||"").slice(0,10);
-    const isPendingSchedule=/local schedule pending result/i.test(String(match?.source||""));
-    const stage=!isPendingSchedule&&ordinal?`${ordinal}-${fixtureFormatKey(match)}`:date||String(match?.id||match?.name||"");
+    const isLocalFallback=/local (?:schedule pending result|result copy)/i.test(String(match?.source||""));
+    const stage=!isLocalFallback&&ordinal?`${ordinal}-${fixtureFormatKey(match)}`:date||String(match?.id||match?.name||"");
     const key=`${match?.category||""}|${teams}|${stage}`;
     const previous=byKey.get(key);
     if(!previous||scoreMatch(match)>scoreMatch(previous))byKey.set(key,match);
@@ -674,7 +714,7 @@ function getNumberedWorldCupMatches(matches){
   let ordered=[];
   if(anchor){
     const n=matchOrdinal(anchor);
-    ordered=[anchor,finished[0],n?getBestByMatchNumber(matches,n+1):upcoming[0],upcoming[0],n?getBestByMatchNumber(matches,n-1):finished[1],finished[1]];
+    ordered=[anchor,n?getBestByMatchNumber(matches,n-1):finished[0],n?getBestByMatchNumber(matches,n-2):finished[1],finished[0],upcoming[0],finished[1]];
   }else if(finished.length){
     ordered=[finished[0],upcoming[0],finished[1],...upcoming.slice(1),...finished.slice(2)];
   }else{
