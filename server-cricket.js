@@ -61,7 +61,23 @@ const INDIA_FUTURE_FIXTURES = [
   { id: "espn-eng-ind-2026-odi-3", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T13:30:00.000Z", venue: "Lord's, London", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" }
 ];
 
-const INDIA_RESULT_FIXTURES = [];
+const INDIA_RESULT_FIXTURES = [
+  {
+    id: "eng-ind-2026-t20-1-result",
+    matchNo: "1st T20I",
+    teams: ["England", "India"],
+    startISO: "2026-07-01T13:30:00.000Z",
+    venue: "Riverside Ground, Chester-le-Street",
+    url: "https://www.cricbuzz.com/live-cricket-scores/129392/ind-vs-eng-1st-t20i-india-tour-of-england-2026",
+    state: "Finished",
+    status: "No result - match abandoned due to rain",
+    score: "IND 189/7 (20 ov) | ENG did not bat",
+    scores: [
+      { team: "IND", score: "189/7", overs: "20" }
+    ],
+    playerOfMatch: ""
+  }
+];
 
 const TEST_CHAMPIONSHIP_FIXTURES = [
   {
@@ -84,6 +100,24 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
     teams: ["West Indies", "Sri Lanka"],
     startISO: "2026-07-03T14:00:00.000Z",
     venue: "Sir Vivian Richards Stadium, North Sound, Antigua"
+  }
+];
+
+const TEST_RESULT_FIXTURES = [
+  {
+    id: "wtc-eng-nz-2026-3-result",
+    matchNo: "3rd Test",
+    teams: ["England", "New Zealand"],
+    startISO: "2026-06-25T10:00:00.000Z",
+    venue: "Trent Bridge, Nottingham",
+    state: "Finished",
+    status: "New Zealand won by 160 runs",
+    score: "NZ 438 & 288/9d | ENG 354 & 212",
+    scores: [
+      { team: "NZ", score: "438 & 288/9d", overs: "114.5 & 94" },
+      { team: "ENG", score: "354 & 212", overs: "88.2 & 51.2" }
+    ],
+    playerOfMatch: "Daryl Mitchell"
   }
 ];
 
@@ -1319,12 +1353,6 @@ async function scrapeWomensT20WorldCup() {
     .map(fixture => scheduleFixtureToMatch(fixture, INDIA_CATEGORY));
 
   const resultIndiaMatches = INDIA_RESULT_FIXTURES
-    .filter(fixture => !matches.some(match => {
-      if (match.category !== INDIA_CATEGORY) return false;
-      const sameTeams = [...(match.teams || [])].sort().join("|") === [...fixture.teams].sort().join("|");
-      const sameDate = match.startISO && fixture.startISO && match.startISO.slice(0, 10) === fixture.startISO.slice(0, 10);
-      return sameTeams && sameDate;
-    }))
     .map(fixture => ({
       ...fixture,
       name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
@@ -1357,6 +1385,17 @@ async function scrapeWomensT20WorldCup() {
       rawText: ""
     }));
 
+  const resultTestMatches = TEST_RESULT_FIXTURES
+    .map(fixture => ({
+      ...fixture,
+      name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
+      category: ENG_NZ_CATEGORY,
+      source: "Local verified result",
+      liveDetails: { venue: fixture.venue },
+      liveScorecard: null,
+      rawText: fixture.status
+    }));
+
   const scheduledWomensMatches = WOMENS_FUTURE_FIXTURES
     .filter(fixture => !hasSameScheduledMatch(matches, fixture, WOMENS_CATEGORY))
     .map(fixture => scheduleFixtureToMatch(fixture, WOMENS_CATEGORY));
@@ -1378,7 +1417,7 @@ async function scrapeWomensT20WorldCup() {
       rawText: fixture.status
     }));
 
-  return dedupeDashboardMatches([...matches, ...scheduledIndiaMatches, ...resultIndiaMatches, ...scheduledTestMatches, ...scheduledWomensMatches, ...resultWomensMatches]).sort((a, b) => {
+  return dedupeDashboardMatches([...matches, ...scheduledIndiaMatches, ...resultIndiaMatches, ...scheduledTestMatches, ...resultTestMatches, ...scheduledWomensMatches, ...resultWomensMatches]).sort((a, b) => {
     const rank = { Live: 1, Upcoming: 2, Finished: 3, Unknown: 4 };
     return (rank[a.state] || 9) - (rank[b.state] || 9);
   });
@@ -1406,8 +1445,11 @@ function dedupeDashboardMatches(list) {
   const scoreMatch = match => {
     const hasStart = Date.parse(match?.startISO || "") ? 1 : 0;
     const hasScore = Array.isArray(match?.scores) && match.scores.length ? 1 : 0;
-    const isLocal = /local/i.test(String(match?.source || "")) ? 1 : 0;
-    return (stateRank[match?.state] || 0) * 1000 + hasStart * 100 + hasScore * 20 + isLocal;
+    const source = String(match?.source || "");
+    const isVerified = /local verified result/i.test(source) ? 1 : 0;
+    const isPending = /local schedule pending result/i.test(source) ? 1 : 0;
+    const isLocal = /local/i.test(source) ? 1 : 0;
+    return (stateRank[match?.state] || 0) * 1000 + isVerified * 200 + hasStart * 100 + hasScore * 20 + isLocal - isPending * 50;
   };
 
   for (const match of list) {
@@ -1415,8 +1457,10 @@ function dedupeDashboardMatches(list) {
     if (!teams) continue;
     const ordinal = matchOrdinalFromText(match);
     const date = String(match?.startISO || "").slice(0, 10);
-    const isLocalFallback = /local (?:schedule pending result|result copy)/i.test(String(match?.source || ""));
-    const stage = !isLocalFallback && ordinal ? `${ordinal}-${fixtureFormatKey(match)}` : date || String(match?.id || match?.name || "");
+    const forceDateKey = /local (?:schedule pending result|result copy|verified result)/i.test(String(match?.source || ""))
+      || match?.category === INDIA_CATEGORY
+      || match?.category === ENG_NZ_CATEGORY;
+    const stage = !forceDateKey && ordinal ? `${ordinal}-${fixtureFormatKey(match)}` : date || String(match?.id || match?.name || "");
     const key = `${match?.category || ""}|${teams}|${stage}`;
     const previous = byKey.get(key);
     if (!previous || scoreMatch(match) > scoreMatch(previous)) byKey.set(key, match);
