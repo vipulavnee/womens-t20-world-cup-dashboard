@@ -155,13 +155,27 @@ function footballResultScoreline(e){
   }
   return e.scoreText||"";
 }
+function tennisFinalScoreline(e,winner){
+  const teams=(e.teams||[]).slice(0,2);
+  if(teams.length<2)return e.scoreText||"";
+  const loser=teams.find(t=>t!==winner)||teams.find(t=>!t.winner)||teams[1];
+  const winSets=tennisSetList(winner),loseSets=tennisSetList(loser);
+  const setScores=winSets.map((v,i)=>{
+    const a=String(v||"").trim(),b=String(loseSets[i]||"").trim();
+    return a&&b?`${a}-${b}`:"";
+  }).filter(Boolean);
+  return setScores.length?setScores.join(", "):(e.scoreText||"");
+}
 function resultSummary(e){
   const winner=(e.teams||[]).find(t=>t.winner);
   if(stateOf(e)!=="Finished"||!winner)return e.scoreText||displayStatus(e);
   if(e.sport==="Football"){
     return `<span class="result-line"><span class="result-winner football-winner">${winner.short||winner.name}</span><span class="result-method football-method">${resultMethod(e)}:</span><span class="result-score blink-result">${footballResultScoreline(e)}</span></span>`;
   }
-  return `<span class="result-line"><span class="result-winner blink-result">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}</span><span class="result-score">${e.scoreText||""}</span></span>`;
+  if(e.sport==="Tennis"){
+    return `<span class="result-line"><span class="result-winner">${tennisPlainName(winner)}</span><span class="result-method">${resultMethod(e)}:</span><span class="result-score blink-result">${tennisFinalScoreline(e,winner)}</span></span>`;
+  }
+  return `<span class="result-line"><span class="result-winner">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}:</span><span class="result-score">${e.scoreText||""}</span></span>`;
 }
 function tennisPlainName(t){return String(t?.short||t?.name||"Player").replace(/^\[[^\]]+\]\s*/,"").trim()}
 function ordinal(n){const v=Number(n)||1;return v===1?"1st":v===2?"2nd":v===3?"3rd":`${v}th`}
@@ -418,7 +432,7 @@ function rowStatus(e){const stage=rowStage(e);return stateOf(e)==="Finished"?`${
 function filterLabel(f){
   if(f==="Upcoming")return responsiveLabel("Upcoming","Up next");
   if(f==="Finished")return responsiveLabel("Finished","Done");
-  if(f==="Stars")return activeSport==="Football"?responsiveLabel("Past WC Winner","Past WC"):f;
+  if(f==="Stars")return activeSport==="Football"?responsiveLabel("Past WC Winners","Past WC"):f;
   if(f==="Next Round Lineup")return responsiveLabel("Next Rnd Lineup","Next Rnd");
   return f;
 }
