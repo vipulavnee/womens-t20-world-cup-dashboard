@@ -150,7 +150,8 @@ function winnerGoalCount(e,winner){
 function footballResultScoreline(e){
   const teams=(e.teams||[]).slice(0,2);
   if(teams.length>=2){
-    return teams.map(t=>`${t.short||t.name} ${Number.isFinite(Number(t.score))?t.score:"--"}`).join(" : ");
+    const ordered=[...teams].sort((a,b)=>(b.winner?1:0)-(a.winner?1:0));
+    return ordered.map(t=>`${t.short||t.name} ${Number.isFinite(Number(t.score))?t.score:"--"}`).join(" : ");
   }
   return e.scoreText||"";
 }
