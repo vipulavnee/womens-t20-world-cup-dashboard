@@ -294,7 +294,7 @@ function starMatches(e){
 function starTag(e){
   const found=starMatches(e);
   if(!found.length)return "";
-  const label=e.sport==="Football"?"Prev WC Winner":"Star";
+  const label=e.sport==="Football"?"Past WC Winner":"Star";
   return `<span class="star-tag">★ ${label}</span>`;
 }
 function footballRoundRank(e){return ({G:0,R32:1,R16:2,Q:3,S:4,Final:5,"3P":6}[e?.roundCode]??99)}
@@ -415,7 +415,13 @@ function getList(){let list=sportEvents();if(activeFilter==="Next Round Lineup")
 function badge(state){return`<span class="pill ${state.toLowerCase()}">${responsiveLabel(state,shortState(state))}</span>`}
 function rowStage(e){return e.sport==="Tennis"?cleanTennisStage(e.stage):e.sport==="Football"?cleanFootballStage(e.stage):e.stage}
 function rowStatus(e){const stage=rowStage(e);return stateOf(e)==="Finished"?`${resultSummary(e)} <span class="match-status-extra">• ${stage}</span>`:`${displayStatus(e)} • ${stage}`}
-function filterLabel(f){return f==="Upcoming"?responsiveLabel("Upcoming","Up next"):f==="Finished"?responsiveLabel("Finished","Done"):f==="Next Round Lineup"?responsiveLabel("Next Rnd Lineup","Next Rnd"):f}
+function filterLabel(f){
+  if(f==="Upcoming")return responsiveLabel("Upcoming","Up next");
+  if(f==="Finished")return responsiveLabel("Finished","Done");
+  if(f==="Stars")return activeSport==="Football"?responsiveLabel("Past WC Winner","Past WC"):f;
+  if(f==="Next Round Lineup")return responsiveLabel("Next Rnd Lineup","Next Rnd");
+  return f;
+}
 function renderMain(){const filters=["Upcoming","Live","Finished","Stars",...(hasNextRoundTab()?["Next Round Lineup"]:[])];const rows=getList(),next=nextOther();$("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">${responsiveLabel("Recent & Upcoming","Recent / Next")}</div></div><div class="section">${next?`<div class="timer"><div><b>${lineup(next)}${rowTitle(next)}${starTag(next)}</b><div class="match-status">${rowStage(next)} • ${fmtTime(next)}</div></div><div class="timer-right"><small>${responsiveLabel("Next mtch starts in","Starts in")}</small><div class="countdown">${countdown(next)}</div></div></div>`:""}<div class="filter-bar"><div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${filterLabel(f)}</button>`).join("")}</div></div><div class="match-list">${rows.map(e=>`<div class="match-row ${selectedId===e.id?"active":""} ${stateOf(e)==="Finished"?"finished-row":""}" ${e.synthetic?"":`onclick="selectEvent('${e.id}')"`}><div><div class="match-name">${lineup(e)}${rowTitle(e)}${starTag(e)}</div><div class="match-status">${rowStatus(e)}</div></div>${badge(stateOf(e))}</div>`).join("")||`<div class="match-row"><div>No ${activeFilter.toLowerCase()} ${eventLabel()} events found.</div></div>`}</div></div></div>`}
 function render(){const e=(userSelected&&selectedId&&sportEvents().find(x=>x.id===selectedId))||primary();if(!e){$("heroMount").innerHTML="";$("cardsMount").innerHTML="";$("mainMount").innerHTML=`<div class="panel"><div class="section">No events found.</div></div>`;return}selectedId=e.id;renderHero(e);renderCards(e);renderMain()}
 async function loadData(){if(inFlight)return;inFlight=true;const s=$("apiStatus");try{s.textContent=allEvents.length?"● REFRESHING":"● LOADING";s.className="status warn";const res=await fetch(apiBase+"/api/sports?t="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error("Sports service returned "+res.status);const json=await res.json();allEvents=json.data||[];if(!userSelected){const e=primary();if(e)selectedId=e.id}s.textContent=allEvents.some(e=>stateOf(e)==="Live")?"● LIVE":"● CONNECTED";s.className="status";$("updatedAt").textContent="Updated: "+new Date().toLocaleTimeString();render()}catch(err){s.textContent="● ERROR";s.className="status bad";if(!allEvents.length)$("mainMount").innerHTML=`<div class="panel"><div class="section">Sports service is waking up. Retrying...</div></div>`;console.error(err)}finally{inFlight=false}}
