@@ -186,7 +186,7 @@ function tennisStatusLabel(e){
   if(stateOf(e)==="Upcoming")return `Starts ${fmtTime(e)}`;
   return e.status||"Finished";
 }
-function displayStatus(e){if(e?.synthetic)return e.status||"Projected lineup";if(e?.sport==="Tennis")return tennisStatusLabel(e);if(e?.sport==="Football"&&stateOf(e)==="Live")return footballPhase(e);if(stateOf(e)==="Live")return e.status||"Live";if(stateOf(e)==="Upcoming")return `Starts ${fmtTime(e)}`;return e.status}
+function displayStatus(e){if(e?.synthetic)return e.status||"Awaiting winners";if(e?.sport==="Tennis")return tennisStatusLabel(e);if(e?.sport==="Football"&&stateOf(e)==="Live")return footballPhase(e);if(stateOf(e)==="Live")return e.status||"Live";if(stateOf(e)==="Upcoming")return `Starts ${fmtTime(e)}`;return e.status}
 function footballMinute(e){
   if(e?.sport!=="Football"||stateOf(e)!=="Live")return "";
   const clock=String(e.clock||"").trim();
@@ -319,7 +319,7 @@ function tennisNextRoundLineup(){
     const a=current[i],b=current[i+1];
     if(!a||!b)continue;
     const draw=a.drawName||eventLabel(),nextRound=tennisNextRoundName(roundNo),name=`${tennisPlayerOrPlaceholder(a)} vs ${tennisPlayerOrPlaceholder(b)}`;
-    out.push({synthetic:true,id:`tennis-next-${activeSport}-${roundNo}-${i}`,sport:"Tennis",competition:"Wimbledon",name,lineupName:name,lineupLabel:`${draw} • ${nextRound} • Lineup ${Math.floor(i/2)+1}`,state:"Upcoming",status:"Projected from current-rnd mtch numbers",stage:`Projected ${nextRound}`,startISO:"",teams:[],detail:"Projected from current-rnd mtch numbers"});
+    out.push({synthetic:true,id:`tennis-next-${activeSport}-${roundNo}-${i}`,sport:"Tennis",competition:"Wimbledon",name,lineupName:name,lineupLabel:`${draw} • ${nextRound} • Lineup ${Math.floor(i/2)+1}`,state:"Upcoming",status:"Awaiting winners",stage:nextRound,startISO:"",teams:[],detail:"Awaiting winners"});
   }
   return out;
 }
