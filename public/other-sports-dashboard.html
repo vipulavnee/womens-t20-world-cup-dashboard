@@ -326,10 +326,16 @@ function footballTitle(e){
   const teams=(e.teams||[]).slice(0,2);
   return teams.length>=2?teams.map(footballTeamTitle).join(" vs "):formatRankedText(e.lineupName||e.name);
 }
+function tennisStarPlayer(t){return tennisTopSeven(t)||tennisGrandSlamWinner(t)}
+function tennisTeamTitle(t){return `${formatRankedText(t?.name||t?.short||"Player")}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}`}
+function tennisTitle(e){
+  const teams=(e.teams||[]).slice(0,2);
+  return teams.length>=2?teams.map(tennisTeamTitle).join(" vs "):formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name);
+}
 function starTag(e){
   const found=starMatches(e);
   if(!found.length)return "";
-  if(e.sport==="Football")return "";
+  if(e.sport==="Football"||e.sport==="Tennis")return "";
   return `<span class="star-tag"><span class="star-symbol">★</span> Star</span>`;
 }
 function footballRoundRank(e){return ({G:0,R32:1,R16:2,Q:3,S:4,Final:5,"3P":6}[e?.roundCode]??99)}
@@ -384,7 +390,7 @@ function cleanTennisStage(stage=""){
     .replace(/\bMatch\b/gi,"Mtch")
     .trim() || stage;
 }
-function rowTitle(e){return e.sport==="Football"?footballTitle(e):formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name)}
+function rowTitle(e){return e.sport==="Football"?footballTitle(e):e.sport==="Tennis"?tennisTitle(e):formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name)}
 function tennisSetList(t){if(Array.isArray(t?.sets)&&t.sets.length)return t.sets.map(s=>String(s.display??s.value??""));return String(t?.score||"").split(/\s+/).filter(Boolean)}
 function tennisSetValue(v){return Number(String(v||"").match(/\d+/)?.[0])}
 function tennisSetComplete(a,b){const x=tennisSetValue(a),y=tennisSetValue(b);if(!Number.isFinite(x)||!Number.isFinite(y))return false;const hi=Math.max(x,y),lo=Math.min(x,y);return (hi>=6&&hi-lo>=2)||(hi===7&&lo>=5)}
@@ -400,8 +406,8 @@ function tennisMatchStatus(e){
   return stateOf(e)==="Upcoming"?base:`${base} • ${sets}`;
 }
 function tennisFullLabelText(t){return `${t?.seed?`#${t.seed} `:""}${t.name||t.short||"Player"}${t.country?` • ${t.country}`:""}`}
-function tennisFullLabel(t){return `${rankBadge(t?.seed)}${t.name||t.short||"Player"}${countryBadge(t?.country)}`}
-function tennisMobileLabel(t){return `${rankBadge(t?.seed)}${t.short||tennisPlainName(t)}${countryBadge(t?.country)}`}
+function tennisFullLabel(t){return `${rankBadge(t?.seed)}${t.name||t.short||"Player"}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
+function tennisMobileLabel(t){return `${rankBadge(t?.seed)}${t.short||tennisPlainName(t)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
 function tennisPoint(t){const p=String(t?.point??"").trim();return p&&p!=="null"?p:""}
 function tennisScoreRows(e){
   const teams=(e.teams||[]).slice(0,2);
@@ -458,7 +464,7 @@ function filterLabel(f){
   return f;
 }
 function renderMain(){const filters=["Upcoming","Live","Finished","Stars",...(hasNextRoundTab()?["Next Round Lineup"]:[])];const rows=getList(),next=nextOther();$("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">${responsiveLabel("Recent & Upcoming","Recent / Next")}</div></div><div class="section">${next?`<div class="timer"><div><b>${lineup(next)}${rowTitle(next)}${starTag(next)}</b><div class="match-status">${rowStage(next)} • ${fmtTime(next)}</div></div><div class="timer-right"><small>${responsiveLabel("Next mtch starts in","Starts in")}</small><div class="countdown">${countdown(next)}</div></div></div>`:""}<div class="filter-bar"><div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${filterLabel(f)}</button>`).join("")}</div></div><div class="match-list">${rows.map(e=>`<div class="match-row ${selectedId===e.id?"active":""} ${stateOf(e)==="Finished"?"finished-row":""}" ${e.synthetic?"":`onclick="selectEvent('${e.id}')"`}><div><div class="match-name">${lineup(e)}${rowTitle(e)}${starTag(e)}</div><div class="match-status">${rowStatus(e)}</div></div>${badge(stateOf(e))}</div>`).join("")||`<div class="match-row"><div>No ${activeFilter.toLowerCase()} ${eventLabel()} events found.</div></div>`}</div></div></div>`}
-function render(){const e=(userSelected&&selectedId&&sportEvents().find(x=>x.id===selectedId))||primary();$("starLegend").style.display=activeSport==="Football"?"inline-flex":"none";if(!e){$("heroMount").innerHTML="";$("cardsMount").innerHTML="";$("mainMount").innerHTML=`<div class="panel"><div class="section">No events found.</div></div>`;return}selectedId=e.id;renderHero(e);renderCards(e);renderMain()}
+function render(){const e=(userSelected&&selectedId&&sportEvents().find(x=>x.id===selectedId))||primary();$("starLegend").style.display=activeSport==="Football"||isTennisTab()?"inline-flex":"none";$("starLegend").innerHTML=activeSport==="Football"?`<span class="star-symbol">★</span> Past WC Winner`:`<span class="star-symbol">★</span> Top 7 seed / Grand Slam winner`;if(!e){$("heroMount").innerHTML="";$("cardsMount").innerHTML="";$("mainMount").innerHTML=`<div class="panel"><div class="section">No events found.</div></div>`;return}selectedId=e.id;renderHero(e);renderCards(e);renderMain()}
 async function loadData(){if(inFlight)return;inFlight=true;const s=$("apiStatus");try{s.textContent=allEvents.length?"● REFRESHING":"● LOADING";s.className="status warn";const res=await fetch(apiBase+"/api/sports?t="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error("Sports service returned "+res.status);const json=await res.json();allEvents=json.data||[];if(!userSelected){const e=primary();if(e)selectedId=e.id}s.textContent=allEvents.some(e=>stateOf(e)==="Live")?"● LIVE":"● CONNECTED";s.className="status";$("updatedAt").textContent="Updated: "+new Date().toLocaleTimeString();render()}catch(err){s.textContent="● ERROR";s.className="status bad";if(!allEvents.length)$("mainMount").innerHTML=`<div class="panel"><div class="section">Sports service is waking up. Retrying...</div></div>`;console.error(err)}finally{inFlight=false}}
 $("sportSelect").value=activeSport;
 $("subtitle").textContent=subtitleText();loadData();setInterval(loadData,20000);setInterval(render,1000);
