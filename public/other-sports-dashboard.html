@@ -305,11 +305,20 @@ function starMatches(e){
   const list=e.sport==="Football"?FOOTBALL_STARS:e.sport==="Tennis"?TENNIS_STARS:[...FOOTBALL_STARS,...TENNIS_STARS];
   return list.filter(name=>haystack.includes(name.toLowerCase()));
 }
+function footballPastWinner(t){
+  const name=String(t?.name||t?.short||"").toLowerCase();
+  return FOOTBALL_STARS.some(w=>name.includes(w.toLowerCase()));
+}
+function footballTeamTitle(t){return `${t?.name||t?.short||"TBD"}${footballPastWinner(t)?`<span class="star-tag">★ Past WC Winner</span>`:""}`}
+function footballTitle(e){
+  const teams=(e.teams||[]).slice(0,2);
+  return teams.length>=2?teams.map(footballTeamTitle).join(" vs "):formatRankedText(e.lineupName||e.name);
+}
 function starTag(e){
   const found=starMatches(e);
   if(!found.length)return "";
-  const label=e.sport==="Football"?"Past WC Winner":"Star";
-  return `<span class="star-tag">★ ${label}</span>`;
+  if(e.sport==="Football")return "";
+  return `<span class="star-tag">★ Star</span>`;
 }
 function footballRoundRank(e){return ({G:0,R32:1,R16:2,Q:3,S:4,Final:5,"3P":6}[e?.roundCode]??99)}
 function nextRoundLineup(){
@@ -363,7 +372,7 @@ function cleanTennisStage(stage=""){
     .replace(/\bMatch\b/gi,"Mtch")
     .trim() || stage;
 }
-function rowTitle(e){return formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name)}
+function rowTitle(e){return e.sport==="Football"?footballTitle(e):formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name)}
 function tennisSetList(t){if(Array.isArray(t?.sets)&&t.sets.length)return t.sets.map(s=>String(s.display??s.value??""));return String(t?.score||"").split(/\s+/).filter(Boolean)}
 function tennisSetValue(v){return Number(String(v||"").match(/\d+/)?.[0])}
 function tennisSetComplete(a,b){const x=tennisSetValue(a),y=tennisSetValue(b);if(!Number.isFinite(x)||!Number.isFinite(y))return false;const hi=Math.max(x,y),lo=Math.min(x,y);return (hi>=6&&hi-lo>=2)||(hi===7&&lo>=5)}
@@ -411,7 +420,7 @@ function matchDetail(e){
   return detail.split(/\s*•\s*/).filter(part=>!/^\s*120['’′]/.test(part)).join(" • ");
 }
 function heroEyebrow(e){return e.sport==="Tennis"&&isTennisTab()?stateOf(e):`${e.competition} • ${stateOf(e)}`}
-function renderHero(e){$("heroMount").innerHTML=`<div class="hero"><div class="hero-grid"><div class="hero-left"><div class="eyebrow">${heroEyebrow(e)}</div><div class="event-title">${lineup(e)}${formatRankedText(e.name)}${starTag(e)}</div><div class="hero-main">${footballHeroMain(e)}</div><div class="match-status">${matchDetail(e)}</div></div><div class="hero-right"><div class="score-title">${stateOf(e)==="Live"?"LIVE SCORE":stateOf(e)==="Upcoming"?"UPCOMING":"MTCH INFO"}</div><div class="scoreboard">${scoreRows(e)}</div><div class="stats">${detailStats(e).map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join("")}</div></div></div></div>`}
+function renderHero(e){$("heroMount").innerHTML=`<div class="hero"><div class="hero-grid"><div class="hero-left"><div class="eyebrow">${heroEyebrow(e)}</div><div class="event-title">${lineup(e)}${rowTitle(e)}${starTag(e)}</div><div class="hero-main">${footballHeroMain(e)}</div><div class="match-status">${matchDetail(e)}</div></div><div class="hero-right"><div class="score-title">${stateOf(e)==="Live"?"LIVE SCORE":stateOf(e)==="Upcoming"?"UPCOMING":"MTCH INFO"}</div><div class="scoreboard">${scoreRows(e)}</div><div class="stats">${detailStats(e).map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join("")}</div></div></div></div>`}
 function nextOther(){return sortEvents(sportEvents().filter(e=>isFuture(e)&&e.id!==selectedId))[0]}
 function renderCards(e){
   if(e.sport==="Football"){
