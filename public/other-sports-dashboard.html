@@ -50,8 +50,10 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .match-row.finished-row{background:linear-gradient(90deg,#0b2a4a,#03101d)}
 .result-line{display:inline-flex;align-items:center;gap:8px;color:#fff;font-weight:950}
 .result-winner{color:#00ff85;font-size:1.05em}
+.result-winner.football-winner{color:#fff}
 .result-score{display:inline-flex;padding:2px 8px;border-radius:999px;background:#ffd43b;color:#1a1200;font-weight:950}
 .result-method{color:#ffb000;font-weight:950}
+.result-method.football-method{color:var(--green)}
 .blink-result{animation:blinkResult 1.1s ease-in-out infinite}
 @keyframes blinkResult{0%,100%{filter:brightness(1);opacity:1}50%{filter:brightness(1.8);opacity:.58}}
 .match-row>div{min-width:0;max-width:calc(100% - 100px);overflow:hidden}.match-name{font-size:14px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.match-status{font-size:10px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -156,7 +158,7 @@ function resultSummary(e){
   const winner=(e.teams||[]).find(t=>t.winner);
   if(stateOf(e)!=="Finished"||!winner)return e.scoreText||displayStatus(e);
   if(e.sport==="Football"){
-    return `<span class="result-line"><span class="result-winner">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}:</span><span class="result-score blink-result">${footballResultScoreline(e)}</span></span>`;
+    return `<span class="result-line"><span class="result-winner football-winner">${winner.short||winner.name}</span><span class="result-method football-method">${resultMethod(e)}:</span><span class="result-score blink-result">${footballResultScoreline(e)}</span></span>`;
   }
   return `<span class="result-line"><span class="result-winner blink-result">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}</span><span class="result-score">${e.scoreText||""}</span></span>`;
 }
