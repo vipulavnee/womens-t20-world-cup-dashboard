@@ -108,7 +108,7 @@ if(activeFilter==="All")activeFilter="Upcoming";
 const $=id=>document.getElementById(id);
 const apiBase=location.protocol==="file:"?"http://localhost:3003":"";
 const FOOTBALL_STARS=["Brazil","Argentina","Germany","France","Spain","England","Italy","Uruguay"];
-const TENNIS_STARS=[
+const TENNIS_GRAND_SLAM_WINNERS=[
   "Novak Djokovic","Jannik Sinner","Carlos Alcaraz","Daniil Medvedev","Stan Wawrinka","Marin Cilic","Dominic Thiem","Rafael Nadal","Andy Murray",
   "Iga Swiatek","Aryna Sabalenka","Coco Gauff","Elena Rybakina","Barbora Krejcikova","Emma Raducanu","Naomi Osaka","Bianca Andreescu","Sofia Kenin",
   "Sloane Stephens","Jelena Ostapenko","Simona Halep","Angelique Kerber","Petra Kvitova","Victoria Azarenka","Garbine Muguruza","Caroline Wozniacki","Ashleigh Barty"
@@ -126,7 +126,7 @@ function isFuture(e){return stateOf(e)==="Upcoming"&&parseTime(e).getTime()>Date
 function sortEvents(list){return [...list].sort((a,b)=>{if(stateOf(a)==="Live"!== (stateOf(b)==="Live"))return stateOf(a)==="Live"?-1:1;if(isFuture(a)&&isFuture(b))return parseTime(a)-parseTime(b);if(isFuture(a)!==isFuture(b))return isFuture(a)?-1:1;return parseTime(b)-parseTime(a)})}
 function primary(){
   let list=sportEvents();
-  if(activeFilter==="Stars")list=list.filter(e=>starMatches(e).length);
+  if(activeFilter==="Stars")list=starFilterEvents(list);
   const live=list.filter(e=>stateOf(e)==="Live");
   const starLive=live.find(e=>starMatches(e).length);
   const latestFinished=sortEvents(list.filter(e=>stateOf(e)==="Finished"))[0];
@@ -301,10 +301,21 @@ function countryBadge(country){return country?`<span class="country-badge">${cou
 function participantLabel(t){return t?.seed?`${rankBadge(t.seed)}${t.short||t.name}`:(t.short||t.name)}
 function responsiveLabel(full,short){return`<span class="full-label">${full}</span><span class="short-label">${short}</span>`}
 function shortState(state){return state==="Finished"?"FT":state==="Upcoming"?"Up next":state}
+function tennisTopSeven(t){const seed=Number(t?.seed);return Number.isFinite(seed)&&seed>=1&&seed<=7}
+function tennisGrandSlamWinner(t){
+  const name=String(t?.name||t?.short||"").toLowerCase();
+  return TENNIS_GRAND_SLAM_WINNERS.some(w=>name.includes(w.toLowerCase()));
+}
 function starMatches(e){
+  if(e.sport==="Tennis"){
+    return (e.teams||[]).filter(t=>tennisTopSeven(t)||tennisGrandSlamWinner(t)).map(t=>t.name||t.short);
+  }
   const haystack=[e.name,e.shortName,e.stage,...(e.teams||[]).flatMap(t=>[t.name,t.short])].filter(Boolean).join(" | ").toLowerCase();
-  const list=e.sport==="Football"?FOOTBALL_STARS:e.sport==="Tennis"?TENNIS_STARS:[...FOOTBALL_STARS,...TENNIS_STARS];
-  return list.filter(name=>haystack.includes(name.toLowerCase()));
+  return FOOTBALL_STARS.filter(name=>haystack.includes(name.toLowerCase()));
+}
+function starFilterEvents(list){
+  const starred=list.filter(e=>starMatches(e).length);
+  return isTennisTab()?starred.filter(isFuture):starred;
 }
 function footballPastWinner(t){
   const name=String(t?.name||t?.short||"").toLowerCase();
@@ -435,7 +446,7 @@ function renderCards(e){
   }
   const next=nextOther();$("cardsMount").innerHTML=`<div class="cards"><div class="card green"><small>Sport:</small><b>${eventLabel()}</b></div><div class="card blue"><small>Phase:</small><b>${e.stage||stateOf(e)}</b></div><div class="card orange"><small>Status:</small><b>${stateOf(e)==="Live"?"Live":displayStatus(e)}</b></div><div class="card purple"><small>Next Other:</small><b>${next?countdown(next):"No other upcoming"}</b></div></div>`;
 }
-function getList(){let list=sportEvents();if(activeFilter==="Next Round Lineup")return nextRoundLineup().slice(0,3);if(activeFilter==="Stars")return sortEvents(list.filter(e=>starMatches(e).length)).slice(0,3);if(activeFilter!=="All")list=list.filter(e=>stateOf(e)===activeFilter);if(activeFilter==="All"){const live=list.filter(e=>stateOf(e)==="Live").slice(0,1),up=sortEvents(list.filter(isFuture)).slice(0,1),fin=sortEvents(list.filter(e=>stateOf(e)==="Finished")).slice(0,1);return [...live,...up,...fin].filter((e,i,a)=>a.findIndex(x=>x.id===e.id)===i).slice(0,3)}return sortEvents(list).slice(0,3)}
+function getList(){let list=sportEvents();if(activeFilter==="Next Round Lineup")return nextRoundLineup().slice(0,3);if(activeFilter==="Stars")return sortEvents(starFilterEvents(list)).slice(0,3);if(activeFilter!=="All")list=list.filter(e=>stateOf(e)===activeFilter);if(activeFilter==="All"){const live=list.filter(e=>stateOf(e)==="Live").slice(0,1),up=sortEvents(list.filter(isFuture)).slice(0,1),fin=sortEvents(list.filter(e=>stateOf(e)==="Finished")).slice(0,1);return [...live,...up,...fin].filter((e,i,a)=>a.findIndex(x=>x.id===e.id)===i).slice(0,3)}return sortEvents(list).slice(0,3)}
 function badge(state){return`<span class="pill ${state.toLowerCase()}">${responsiveLabel(state,shortState(state))}</span>`}
 function rowStage(e){return e.sport==="Tennis"?cleanTennisStage(e.stage):e.sport==="Football"?cleanFootballStage(e.stage):e.stage}
 function rowStatus(e){const stage=rowStage(e);return stateOf(e)==="Finished"?`${resultSummary(e)} <span class="match-status-extra">• ${stage}</span>`:`${displayStatus(e)} • ${stage}`}
