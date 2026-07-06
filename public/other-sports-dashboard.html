@@ -148,8 +148,7 @@ function winnerGoalCount(e,winner){
 function footballResultScoreline(e){
   const teams=(e.teams||[]).slice(0,2);
   if(teams.length>=2){
-    const ordered=[...teams].sort((a,b)=>(b.winner?1:0)-(a.winner?1:0));
-    return ordered.map(t=>`${t.short||t.name} ${Number.isFinite(Number(t.score))?t.score:"--"}`).join(" : ");
+    return teams.map(t=>`${t.short||t.name} ${Number.isFinite(Number(t.score))?t.score:"--"}`).join(" : ");
   }
   return e.scoreText||"";
 }
@@ -157,7 +156,7 @@ function resultSummary(e){
   const winner=(e.teams||[]).find(t=>t.winner);
   if(stateOf(e)!=="Finished"||!winner)return e.scoreText||displayStatus(e);
   if(e.sport==="Football"){
-    return `<span class="result-line"><span class="result-winner blink-result">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}:</span><span class="result-score blink-result">${footballResultScoreline(e)}</span></span>`;
+    return `<span class="result-line"><span class="result-winner">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}:</span><span class="result-score">${footballResultScoreline(e)}</span></span>`;
   }
   return `<span class="result-line"><span class="result-winner blink-result">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}</span><span class="result-score">${e.scoreText||""}</span></span>`;
 }
