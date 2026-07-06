@@ -293,6 +293,7 @@ function cleanLineupLabel(label=""){
       .replace(/\s{2,}/g," ")
       .trim();
   }
+  if(isTennisTab())cleaned=cleanTennisRoundText(cleaned);
   return cleaned;
 }
 function lineup(e){const label=cleanLineupLabel(e?.lineupLabel||"");return label?`<span class="lineup-label">${label}</span>`:""}
@@ -302,6 +303,7 @@ function countryBadge(country){return country?`<span class="country-badge">${cou
 function participantLabel(t){return t?.seed?`${rankBadge(t.seed)}${t.short||t.name}`:(t.short||t.name)}
 function responsiveLabel(full,short){return`<span class="full-label">${full}</span><span class="short-label">${short}</span>`}
 function shortState(state){return state==="Finished"?"FT":state==="Upcoming"?"Up next":state}
+function cleanTennisRoundText(text=""){return String(text||"").replace(/\bRnd\s*5\b/gi,"QF").replace(/\bRound\s*5\b/gi,"QF").replace(/\bQuarterfinals?\b/gi,"QF")}
 function tennisTopSeven(t){const seed=Number(t?.seed);return Number.isFinite(seed)&&seed>=1&&seed<=7}
 function tennisGrandSlamWinner(t){
   const name=String(t?.name||t?.short||"").toLowerCase();
@@ -350,7 +352,7 @@ function nextRoundLineup(){
   return sortEvents(football.filter(e=>footballRoundRank(e)===target));
 }
 function tennisRoundNo(e){const found=String(e?.roundCode||"").match(/^R(\d+)$/);return found?Number(found[1]):0}
-function tennisNextRoundName(roundNo){return roundNo>=1?`Rnd ${roundNo+1}`:"Next Rnd"}
+function tennisNextRoundName(roundNo){return roundNo>=1?cleanTennisRoundText(`Rnd ${roundNo+1}`):"Next Rnd"}
 function tennisPlayerOrPlaceholder(e){const winner=(e.teams||[]).find(t=>t.winner);if(stateOf(e)==="Finished"&&winner)return winner.name||winner.short;return `Winner of Mtch No ${e.roundMatchNumber||"?"}`}
 function tennisNextRoundLineup(){
   const rows=sportEvents().filter(e=>e.sport==="Tennis"&&tennisRoundNo(e)>0&&e.roundMatchNumber&&!/^TBD\s+vs\s+TBD$/i.test(e.name||""));
@@ -389,6 +391,8 @@ function cleanTennisStage(stage=""){
     .replace(/Ladies'? Singles\s*•\s*/gi,"")
     .replace(/\bRound\b/gi,"Rnd")
     .replace(/\bMatch\b/gi,"Mtch")
+    .replace(/\bRnd\s*5\b/gi,"QF")
+    .replace(/\bQuarterfinals?\b/gi,"QF")
     .trim() || stage;
 }
 function rowTitle(e){return e.sport==="Football"?footballTitle(e):e.sport==="Tennis"?tennisTitle(e):formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name)}
