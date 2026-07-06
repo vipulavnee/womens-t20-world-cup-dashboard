@@ -212,11 +212,11 @@ const LOCAL_SCHEDULE_COPY = [
   ["copy-eng-ind-odi-1","Indian Men","1st ODI","England","India","2026-07-14T13:30:00.000Z","Edgbaston, Birmingham",false],
   ["copy-eng-ind-odi-2","Indian Men","2nd ODI","England","India","2026-07-16T13:30:00.000Z","Sophia Gardens, Cardiff",false],
   ["copy-eng-ind-odi-3","Indian Men","3rd ODI","England","India","2026-07-19T13:30:00.000Z","Lord's, London",false],
-  ["copy-wtc-eng-nz-3","Test Championship","3rd Test","England","New Zealand","2026-06-25T10:00:00.000Z","Trent Bridge, Nottingham",false],
-  ["copy-wtc-wi-sl-1","Test Championship","1st Test","West Indies","Sri Lanka","2026-06-25T14:00:00.000Z","Sir Vivian Richards Stadium, North Sound, Antigua",false],
-  ["copy-wtc-wi-sl-2","Test Championship","2nd Test","West Indies","Sri Lanka","2026-07-03T14:00:00.000Z","Sir Vivian Richards Stadium, North Sound, Antigua",false]
-].map(([id,category,matchNo,team1,team2,startISO,venue,timeTBA])=>({
-  id,category,matchNo,teams:[team1,team2],name:`${team1} vs ${team2}`,startISO,venue,timeTBA,
+  ["copy-wtc-eng-nz-3","Test Championship","3rd Test","England","New Zealand","2026-06-25T10:00:00.000Z","Trent Bridge, Nottingham",false,"2026-06-29T17:00:00.000Z"],
+  ["copy-wtc-wi-sl-1","Test Championship","1st Test","West Indies","Sri Lanka","2026-06-25T14:00:00.000Z","Sir Vivian Richards Stadium, North Sound, Antigua",false,"2026-06-29T21:00:00.000Z"],
+  ["copy-wtc-wi-sl-2","Test Championship","2nd Test","West Indies","Sri Lanka","2026-07-03T14:00:00.000Z","Sir Vivian Richards Stadium, North Sound, Antigua",false,"2026-07-07T21:00:00.000Z"]
+].map(([id,category,matchNo,team1,team2,startISO,venue,timeTBA,endISO])=>({
+  id,category,matchNo,teams:[team1,team2],name:`${team1} vs ${team2}`,startISO,venue,timeTBA,endISO:endISO||"",
   state:"Upcoming",status:`Starts ${startISO.slice(0,10)} · ${venue}`,source:"Local schedule copy",scores:[],score:"Match not started",liveDetails:{venue}
 }));
 
@@ -271,6 +271,7 @@ const LOCAL_RESULT_COPY = [
     name:"England vs New Zealand",
     startISO:"2026-06-25T10:00:00.000Z",
     venue:"Trent Bridge, Nottingham",
+    endISO:"2026-06-29T17:00:00.000Z",
     state:"Finished",
     status:"New Zealand won by 160 runs",
     source:"Local verified result",
@@ -589,16 +590,20 @@ function livePriority(m){
   return isEnglandNewZealand(m) ? 0 : 1;
 }
 
-function testMatchPreference(m){
-  return activeCompetition==="Test Championship" && isEnglandNewZealand(m) ? 0 : 1;
-}
-
 function finishedSortValue(m){
   if(activeCompetition==="Indian Men"){
     const start=parseStartTime(m).getTime();
     if(Number.isFinite(start))return start;
   }
   return parseStartTime(m).getTime() || 0;
+}
+
+function finishedEndSortValue(m){
+  const explicitEnd=Date.parse(m?.endISO||m?.endTimeISO||m?.dateEnd||"");
+  if(Number.isFinite(explicitEnd))return explicitEnd;
+  const start=parseStartTime(m).getTime();
+  if(!Number.isFinite(start))return 0;
+  return isTest(m)?start+5*24*60*60*1000:start;
 }
 
 function sortDashboardMatches(matches){
@@ -613,8 +618,9 @@ function sortDashboardMatches(matches){
     }
 
     if(stateOf(a) === "Finished" && stateOf(b) === "Finished"){
-      const fp=testMatchPreference(a)-testMatchPreference(b);
-      if(fp!==0)return fp;
+      if(activeCompetition==="Test Championship"){
+        return finishedEndSortValue(a)-finishedEndSortValue(b);
+      }
       const aValue=finishedSortValue(a),bValue=finishedSortValue(b);
       if(aValue!==bValue)return bValue-aValue;
       return stageRank(b) - stageRank(a);
@@ -657,8 +663,13 @@ function getDisplayMatches(){
     if(numbered.length)return numbered;
   }
   const live=matches.filter(m=>stateOf(m)==="Live");
-  const finished=matches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>testMatchPreference(a)-testMatchPreference(b)||finishedSortValue(b)-finishedSortValue(a));
+  const finished=matches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>activeCompetition==="Test Championship"
+    ? finishedEndSortValue(a)-finishedEndSortValue(b)
+    : finishedSortValue(b)-finishedSortValue(a));
   const upcoming=matches.filter(isFutureUpcoming).sort((a,b)=>parseStartTime(a)-parseStartTime(b));
+  if(activeCompetition==="Test Championship"){
+    return [...live,...finished,...upcoming].filter(Boolean).slice(0,3);
+  }
   const ordered=live.length
     ? [live[0],finished[0],upcoming[0],...live.slice(1),...finished.slice(1),...upcoming.slice(1)]
     : [finished[0],upcoming[0],...finished.slice(1),...upcoming.slice(1)];
@@ -1518,7 +1529,9 @@ function renderMain(){
     matches=activeFilter==="Upcoming"
       ? tournamentMatches.filter(isFutureUpcoming).slice(0,3)
       : activeFilter==="Finished"
-        ? tournamentMatches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>parseStartTime(b)-parseStartTime(a)).slice(0,3)
+        ? tournamentMatches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>activeCompetition==="Test Championship"
+          ? finishedEndSortValue(a)-finishedEndSortValue(b)
+          : parseStartTime(b)-parseStartTime(a)).slice(0,3)
         : tournamentMatches.filter(m=>stateOf(m)===activeFilter).slice(0,3);
   }
 

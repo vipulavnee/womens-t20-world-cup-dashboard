@@ -85,6 +85,7 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
     matchNo: "3rd Test",
     teams: ["England", "New Zealand"],
     startISO: "2026-06-25T10:00:00.000Z",
+    endISO: "2026-06-29T17:00:00.000Z",
     venue: "Trent Bridge, Nottingham"
   },
   {
@@ -92,6 +93,7 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
     matchNo: "1st Test",
     teams: ["West Indies", "Sri Lanka"],
     startISO: "2026-06-25T14:00:00.000Z",
+    endISO: "2026-06-29T21:00:00.000Z",
     venue: "Sir Vivian Richards Stadium, North Sound, Antigua"
   },
   {
@@ -99,6 +101,7 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
     matchNo: "2nd Test",
     teams: ["West Indies", "Sri Lanka"],
     startISO: "2026-07-03T14:00:00.000Z",
+    endISO: "2026-07-07T21:00:00.000Z",
     venue: "Sir Vivian Richards Stadium, North Sound, Antigua"
   }
 ];
@@ -117,7 +120,8 @@ const TEST_RESULT_FIXTURES = [
       { team: "NZ", score: "438 & 288/9d", overs: "114.5 & 94" },
       { team: "ENG", score: "354 & 212", overs: "88.2 & 51.2" }
     ],
-    playerOfMatch: "Daryl Mitchell"
+    playerOfMatch: "Daryl Mitchell",
+    endISO: "2026-06-29T17:00:00.000Z"
   }
 ];
 
@@ -1149,6 +1153,9 @@ async function fetchMatchDetail(url, teams, stateHint) {
       result,
       playerOfMatch,
       structuredStatus: structuredTest ? clean(embedded.matchInfo.status) : "",
+      endISO: structuredTest && Number.isFinite(Number(embedded.matchInfo.endDate))
+        ? new Date(Number(embedded.matchInfo.endDate)).toISOString()
+        : "",
       startISO: structuredTest && Number.isFinite(Number(embedded.matchInfo.startDate))
         ? new Date(Number(embedded.matchInfo.startDate)).toISOString()
         : schemaStart && Number.isFinite(Date.parse(schemaStart))
@@ -1337,6 +1344,7 @@ async function scrapeWomensT20WorldCup() {
       state,
       status,
       startISO,
+      endISO: detail.endISO || "",
       url: item.url,
       source: "Cricbuzz",
       score: matchScore,
