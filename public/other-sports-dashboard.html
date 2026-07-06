@@ -293,7 +293,9 @@ function starMatches(e){
 }
 function starTag(e){
   const found=starMatches(e);
-  return found.length?`<span class="star-tag">★ Star</span>`:"";
+  if(!found.length)return "";
+  const label=e.sport==="Football"?"Prev WC Winner":"Star";
+  return `<span class="star-tag">★ ${label}</span>`;
 }
 function footballRoundRank(e){return ({G:0,R32:1,R16:2,Q:3,S:4,Final:5,"3P":6}[e?.roundCode]??99)}
 function nextRoundLineup(){
