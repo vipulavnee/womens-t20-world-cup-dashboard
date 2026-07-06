@@ -9,7 +9,7 @@ services:
     autoDeploy: true
 
   - type: web
-    name: other-sports-dashboard
+    name: "Vipul's- Other sports-dashboard"
     runtime: node
     plan: free
     buildCommand: npm install
