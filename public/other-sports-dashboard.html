@@ -138,6 +138,7 @@ function changeSport(v){activeSport=v;activeFilter="Upcoming";selectedId="";user
 function setFilter(v){activeFilter=v;render()}
 function selectEvent(id){selectedId=id;userSelected=true;render()}
 function fmtTime(e){const d=parseTime(e);return d.getTime()?d.toLocaleString([], {weekday:"short", day:"numeric", month:"short", hour:"numeric", minute:"2-digit"}):"TBD"}
+function scheduleLabel(e){return e?.synthetic&&!parseTime(e).getTime()?"Schedule TBD":fmtTime(e)}
 function countdown(e){const diff=parseTime(e)-Date.now();if(diff<=0)return"Starting now";const s=Math.floor(diff/1000),d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return d>=1?`${d}d ${h}h ${m}m`:`${h}h ${m}m`}
 function winnerText(e){const winner=(e.teams||[]).find(t=>t.winner);return winner?`${winner.short||winner.name} ${resultMethod(e)} ${e.scoreText?`• ${e.scoreText}`:""}`:(stateOf(e)==="Finished"?"Finished":"In progress")}
 function resultMethod(e){return /pens|penalties|shoot/i.test(`${e.status||""} ${e.detail||""}`)?"won on penalties":"won"}
@@ -198,10 +199,10 @@ function tennisLiveSummary(e){
 function tennisStatusLabel(e){
   if(e?.sport!=="Tennis")return "";
   if(stateOf(e)==="Live")return tennisLiveSummary(e)||"Mtch live";
-  if(stateOf(e)==="Upcoming")return `Starts ${fmtTime(e)}`;
+  if(stateOf(e)==="Upcoming")return `Starts ${scheduleLabel(e)}`;
   return e.status||"Finished";
 }
-function displayStatus(e){if(e?.synthetic)return e.status||"Awaiting winners";if(e?.sport==="Tennis")return tennisStatusLabel(e);if(e?.sport==="Football"&&stateOf(e)==="Live")return footballPhase(e);if(stateOf(e)==="Live")return e.status||"Live";if(stateOf(e)==="Upcoming")return `Starts ${fmtTime(e)}`;return e.status}
+function displayStatus(e){if(e?.synthetic)return e.status||"Awaiting winners";if(e?.sport==="Tennis")return tennisStatusLabel(e);if(e?.sport==="Football"&&stateOf(e)==="Live")return footballPhase(e);if(stateOf(e)==="Live")return e.status||"Live";if(stateOf(e)==="Upcoming")return `Starts ${scheduleLabel(e)}`;return e.status}
 function footballMinute(e){
   if(e?.sport!=="Football"||stateOf(e)!=="Live")return "";
   const clock=String(e.clock||"").trim();
@@ -455,7 +456,7 @@ function renderCards(e){
 function getList(){let list=sportEvents();if(activeFilter==="Next Round Lineup")return nextRoundLineup().slice(0,3);if(activeFilter==="Stars")return sortEvents(starFilterEvents(list)).slice(0,3);if(activeFilter!=="All")list=list.filter(e=>stateOf(e)===activeFilter);if(activeFilter==="All"){const live=list.filter(e=>stateOf(e)==="Live").slice(0,1),up=sortEvents(list.filter(isFuture)).slice(0,1),fin=sortEvents(list.filter(e=>stateOf(e)==="Finished")).slice(0,1);return [...live,...up,...fin].filter((e,i,a)=>a.findIndex(x=>x.id===e.id)===i).slice(0,3)}return sortEvents(list).slice(0,3)}
 function badge(state){return`<span class="pill ${state.toLowerCase()}">${responsiveLabel(state,shortState(state))}</span>`}
 function rowStage(e){return e.sport==="Tennis"?cleanTennisStage(e.stage):e.sport==="Football"?cleanFootballStage(e.stage):e.stage}
-function rowStatus(e){const stage=rowStage(e);return stateOf(e)==="Finished"?`${resultSummary(e)} <span class="match-status-extra">• ${stage}</span>`:`${displayStatus(e)} • ${stage}`}
+function rowStatus(e){const stage=rowStage(e);if(e?.synthetic)return `${displayStatus(e)} • ${scheduleLabel(e)} • ${stage}`;return stateOf(e)==="Finished"?`${resultSummary(e)} <span class="match-status-extra">• ${stage}</span>`:`${displayStatus(e)} • ${stage}`}
 function filterLabel(f){
   if(f==="Upcoming")return responsiveLabel("Upcoming","Up next");
   if(f==="Finished")return responsiveLabel("Finished","Done");
