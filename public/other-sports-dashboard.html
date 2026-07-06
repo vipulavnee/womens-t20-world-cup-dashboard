@@ -365,7 +365,9 @@ function tennisNextRoundLineup(){
     const a=current[i],b=current[i+1];
     if(!a||!b)continue;
     const draw=a.drawName||eventLabel(),nextRound=tennisNextRoundName(roundNo),name=`${tennisPlayerOrPlaceholder(a)} vs ${tennisPlayerOrPlaceholder(b)}`;
-    out.push({synthetic:true,id:`tennis-next-${activeSport}-${roundNo}-${i}`,sport:"Tennis",competition:"Wimbledon",name,lineupName:name,lineupLabel:`${draw} • ${nextRound} • Lineup ${Math.floor(i/2)+1}`,state:"Upcoming",status:"Awaiting winners",stage:nextRound,startISO:"",teams:[],detail:"Awaiting winners"});
+    const ready=stateOf(a)==="Finished"&&stateOf(b)==="Finished"&&(a.teams||[]).some(t=>t.winner)&&(b.teams||[]).some(t=>t.winner);
+    const status=ready?"Lineup ready":"Awaiting winners";
+    out.push({synthetic:true,id:`tennis-next-${activeSport}-${roundNo}-${i}`,sport:"Tennis",competition:"Wimbledon",name,lineupName:name,lineupLabel:`${draw} • ${nextRound} • Lineup ${Math.floor(i/2)+1}`,state:"Upcoming",status,stage:nextRound,startISO:"",teams:[],detail:status});
   }
   return out;
 }
