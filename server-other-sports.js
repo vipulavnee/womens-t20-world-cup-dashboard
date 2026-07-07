@@ -74,7 +74,7 @@ const INDIA_CRICKET_FALLBACK = [
 ];
 const WIMBLEDON_GRAPHQL = "https://www.wimbledon.com/graphql";
 const WIMBLEDON_AUTH = "77d2d900-b41b-4a6a-8700-b98f80bef920";
-const ENABLE_WIMBLEDON_ENRICHMENT = process.env.ENABLE_WIMBLEDON_ENRICHMENT === "1";
+const ENABLE_WIMBLEDON_ENRICHMENT = process.env.ENABLE_WIMBLEDON_ENRICHMENT !== "0";
 
 function ymd(date) {
   return date.toISOString().slice(0, 10).replace(/-/g, "");
@@ -366,7 +366,10 @@ async function fetchWimbledonLiveScores() {
         wimbledonMatchId: match.matchId,
         wimbledonStatus: match.status,
         pointScore: gameScore?.some(v => v !== null && v !== undefined) ? gameScore.map(v => v ?? "").join(" - ") : "",
-        playerPoints: [gameScore?.[0] ?? "", gameScore?.[1] ?? ""]
+        players: names.map((name, index) => ({
+          name,
+          point: gameScore?.[index] ?? ""
+        }))
       };
       for (const key of tennisPairKeys(names)) map.set(key, payload);
     }
@@ -537,7 +540,7 @@ async function fetchTennis() {
       row.wimbledonStatus = enrichment.wimbledonStatus;
       row.teams = (row.teams || []).map((team, index) => ({
         ...team,
-        point: enrichment.playerPoints?.[index] ?? ""
+        point: enrichment.players?.find(player => tennisPersonKey(player.name) === tennisPersonKey(team.short || team.name))?.point ?? ""
       }));
     }
   }
