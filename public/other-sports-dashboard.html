@@ -404,14 +404,24 @@ function nextRoundLineup(){
   const target=nextRanks[0]??earliest;
   return sortEvents(football.filter(e=>footballRoundRank(e)===target));
 }
-function tennisRoundNo(e){const found=String(e?.roundCode||"").match(/^R(\d+)$/);return found?Number(found[1]):0}
-function tennisNextRoundName(roundNo){return roundNo>=1?cleanTennisRoundText(`Rnd ${roundNo+1}`):"Next Rnd"}
-function tennisPlayerOrPlaceholder(e){const winner=(e.teams||[]).find(t=>t.winner);if(stateOf(e)==="Finished"&&winner)return winner.name||winner.short;return `Winner of Mtch No ${e.roundMatchNumber||"?"}`}
+function tennisRoundNo(e){return tennisRoundOrder(e)}
+function tennisNextRoundName(roundNo){
+  if(roundNo===4)return "QF";
+  if(roundNo===5)return "SF";
+  if(roundNo===6)return "Final";
+  return roundNo>=1?cleanTennisRoundText(`Rnd ${roundNo+1}`):"Next Rnd";
+}
+function tennisPlayerOrPlaceholder(e){
+  const winner=(e.teams||[]).find(t=>t.winner);
+  if(stateOf(e)==="Finished"&&winner)return winner.name||winner.short;
+  return `Winner of ${tennisSourcePlayers(e)}`;
+}
 function tennisNextRoundLineup(){
   const rows=sportEvents().filter(e=>e.sport==="Tennis"&&tennisRoundNo(e)>0&&e.roundMatchNumber&&!/^TBD\s+vs\s+TBD$/i.test(e.name||""));
   if(!rows.length)return[];
   const open=rows.filter(e=>stateOf(e)!=="Finished");
-  const roundNo=open.length?Math.min(...open.map(tennisRoundNo)):Math.max(...rows.map(tennisRoundNo));
+  const progressed=rows.filter(e=>stateOf(e)!=="Upcoming");
+  const roundNo=progressed.length?Math.max(...progressed.map(tennisRoundNo)):(open.length?Math.min(...open.map(tennisRoundNo)):Math.max(...rows.map(tennisRoundNo)));
   const current=rows.filter(e=>tennisRoundNo(e)===roundNo).sort((a,b)=>a.roundMatchNumber-b.roundMatchNumber);
   const out=[];
   for(let i=0;i<current.length;i+=2){
