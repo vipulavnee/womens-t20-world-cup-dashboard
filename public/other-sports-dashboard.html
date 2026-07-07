@@ -63,7 +63,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .country-badge{display:inline-flex;margin-left:6px;padding:1px 6px;border-radius:999px;border:1px solid #38bdf899;background:#38bdf81f;color:#bae6fd;font-size:.68em;font-weight:950;vertical-align:middle}
 .star-tag{display:inline-flex;align-items:center;gap:4px;margin-left:7px;padding:2px 7px;border-radius:999px;border:1px solid #00ff8599;background:#00ff8520;color:#00ff85;font-size:1.144em;font-weight:950;vertical-align:middle}
 .pill{border-radius:999px;padding:6px 10px;font-weight:950;font-size:8.8px;background:#0b172d}.live{color:var(--green)}.upcoming{color:var(--orange)}.finished{color:#ff8094}
-.footer{display:flex;justify-content:space-between;margin-top:4px;color:#94a3b8;font-size:7.92px}.footer-left{display:flex;gap:10px;align-items:center}
+.footer{display:flex;justify-content:space-between;margin-top:4px;color:#94a3b8;font-size:7.92px}.footer-left{display:flex;gap:10px;align-items:center}.data-quality{color:#dbeafe;font-weight:950;white-space:nowrap}
 @media(max-width:900px){.page{height:auto;overflow:auto}.topbar,.actions{align-items:flex-start;flex-direction:column}.select{width:100%}.hero{height:auto}.hero-grid,.cards{grid-template-columns:1fr}.event-title{font-size:21.12px}.score-row b,.score-row span{font-size:15.84px}}
 @media(max-width:600px){
   body{overflow-x:hidden}.page{width:100%;padding:5px;gap:0}.topbar{gap:6px;margin-bottom:4px}.brand{gap:8px}.logo{width:30px;height:30px;border-radius:8px}.title{font-size:15.84px;letter-spacing:0}.subtitle{font-size:7.92px}
@@ -98,12 +98,12 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
   <div id="heroMount"></div>
   <div id="cardsMount"></div>
   <div id="mainMount"></div>
-  <div class="footer"><div class="footer-left"><span>Auto-refresh every 20 seconds</span><span class="star-legend" id="starLegend"><span class="star-symbol">★</span> Past WC Winner</span></div><div id="updatedAt">Updated: --</div></div>
+  <div class="footer"><div class="footer-left"><span id="refreshCadence">Auto-refresh every 20 seconds</span><span class="data-quality" id="dataQuality"></span><span class="star-legend" id="starLegend"><span class="star-symbol">★</span> Past WC Winner</span></div><div id="updatedAt">Updated: --</div></div>
 </div>
 
 <script>
 const params=new URLSearchParams(location.search);
-let allEvents=[],activeSport=params.get("sport")||"Football",activeFilter=params.get("filter")||"Upcoming",selectedId="",userSelected=false,inFlight=false;
+let allEvents=[],activeSport=params.get("sport")||"Football",activeFilter=params.get("filter")||"Upcoming",selectedId="",userSelected=false,inFlight=false,refreshTimer=null;
 if(activeSport==="All")activeSport="Football";
 if(activeFilter==="All")activeFilter="Upcoming";
 const $=id=>document.getElementById(id);
@@ -137,7 +137,7 @@ function primary(){
   if(activeSport==="CricketIndiaMen")return live[0]||latestFinished||nextUpcoming||list[0];
   return starLive||live[0]||nextUpcoming||latestFinished||list[0];
 }
-function changeSport(v){activeSport=v;activeFilter="Upcoming";selectedId="";userSelected=false;$("subtitle").textContent=subtitleText();render()}
+function changeSport(v){activeSport=v;activeFilter="Upcoming";selectedId="";userSelected=false;$("subtitle").textContent=subtitleText();render();scheduleRefresh()}
 function setFilter(v){activeFilter=v;render()}
 function selectEvent(id){selectedId=id;userSelected=true;render()}
 function fmtTime(e){const d=parseTime(e);return d.getTime()?d.toLocaleString([], {weekday:"short", day:"numeric", month:"short", hour:"numeric", minute:"2-digit"}):"TBD"}
@@ -363,6 +363,29 @@ function cricketStatusCard(e){
   if(e?.sport==="Cricket"&&stateOf(e)==="Live"&&e.inningsStatus)return e.inningsStatus;
   return displayStatus(e);
 }
+function activeCricketEvent(){
+  return activeSport==="CricketIndiaMen" ? ((selectedId&&sportEvents().find(e=>e.id===selectedId))||primary()) : null;
+}
+function refreshIntervalMs(){
+  const cricket=activeCricketEvent();
+  return cricket&&(cricket.sourceStale||cricket.sourceFallback)?5000:20000;
+}
+function scheduleRefresh(){
+  const ms=refreshIntervalMs();
+  clearInterval(refreshTimer);
+  refreshTimer=setInterval(loadData,ms);
+  $("refreshCadence").textContent=`Auto-refresh every ${Math.round(ms/1000)} seconds`;
+}
+function updateDataFooter(e){
+  const q=$("dataQuality");
+  if(e?.sport==="Cricket"){
+    q.style.display="inline";
+    q.textContent=`Data: ${cricketDataQuality(e)}`;
+  }else{
+    q.style.display="none";
+    q.textContent="";
+  }
+}
 function previousCricketResult(){
   const now=parseTime({startISO:new Date().toISOString()}).getTime();
   const finished=sportEvents()
@@ -567,7 +590,7 @@ function renderCards(e){
     return;
   }
   if(e.sport==="Cricket"){
-    $("cardsMount").innerHTML=`<div class="cards"><div class="card blue"><small>${responsiveLabel("Match:","Mtch:")}</small><b>${e.stage||"--"}</b></div><div class="card orange"><small>${responsiveLabel("Status:","Status:")}</small><b>${cricketStatusCard(e)}</b></div><div class="card green"><small>${responsiveLabel("Prev Result:","Prev:")}</small><b>${previousCricketResult()}</b></div><div class="card purple"><small>${responsiveLabel("Data:","Data:")}</small><b>${cricketDataQuality(e)}</b></div></div>`;
+    $("cardsMount").innerHTML=`<div class="cards tennis-cards"><div class="card blue"><small>${responsiveLabel("Match:","Mtch:")}</small><b>${e.stage||"--"}</b></div><div class="card orange"><small>${responsiveLabel("Status:","Status:")}</small><b>${cricketStatusCard(e)}</b></div><div class="card green"><small>${responsiveLabel("Prev Result:","Prev:")}</small><b>${previousCricketResult()}</b></div></div>`;
     return;
   }
   const next=nextOther();$("cardsMount").innerHTML=`<div class="cards"><div class="card green"><small>Sport:</small><b>${eventLabel()}</b></div><div class="card blue"><small>Phase:</small><b>${e.stage||stateOf(e)}</b></div><div class="card orange"><small>Status:</small><b>${stateOf(e)==="Live"?"Live":displayStatus(e)}</b></div><div class="card purple"><small>Next Other:</small><b>${next?countdown(next):"No other upcoming"}</b></div></div>`;
@@ -585,10 +608,10 @@ function filterLabel(f){
   return f;
 }
 function renderMain(){const filters=["Upcoming","Live","Finished",...(activeSport==="CricketIndiaMen"?[]:["Stars"]),...(hasNextRoundTab()?["Next Round Lineup"]:[])];if(!filters.includes(activeFilter))activeFilter="Upcoming";const rows=getList(),next=nextOther();$("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">${responsiveLabel("Recent & Upcoming","Recent / Next")}</div></div><div class="section">${next?`<div class="timer"><div><b>${lineup(next)}${rowTitle(next)}${starTag(next)}</b><div class="match-status">${rowStage(next)} • ${fmtTime(next)}</div></div><div class="timer-right"><small>${responsiveLabel("Next mtch starts in","Starts in")}</small><div class="countdown">${countdown(next)}</div></div></div>`:""}<div class="filter-bar"><div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${filterLabel(f)}</button>`).join("")}</div></div><div class="match-list">${rows.map(e=>`<div class="match-row ${selectedId===e.id?"active":""} ${stateOf(e)==="Finished"?"finished-row":""}" ${e.synthetic?"":`onclick="selectEvent('${e.id}')"`}><div><div class="match-name">${lineup(e)}${rowTitle(e)}${starTag(e)}</div><div class="match-status">${rowStatus(e)}</div></div>${badge(stateOf(e))}</div>`).join("")||`<div class="match-row"><div>No ${activeFilter.toLowerCase()} ${eventLabel()} events found.</div></div>`}</div></div></div>`}
-function render(){const e=(userSelected&&selectedId&&sportEvents().find(x=>x.id===selectedId))||primary();$("starLegend").style.display=activeSport==="Football"||isTennisTab()?"inline-flex":"none";$("starLegend").innerHTML=activeSport==="Football"?`<span class="star-symbol">★</span> Past WC Winner`:`<span class="star-symbol">★</span> Top 7 seed / Grand Slam winner`;if(!e){$("heroMount").innerHTML="";$("cardsMount").innerHTML="";$("mainMount").innerHTML=`<div class="panel"><div class="section">No events found.</div></div>`;return}selectedId=e.id;renderHero(e);renderCards(e);renderMain()}
-async function loadData(){if(inFlight)return;inFlight=true;const s=$("apiStatus");try{s.textContent=allEvents.length?"● REFRESHING":"● LOADING";s.className="status warn";const res=await fetch(apiBase+"/api/sports?t="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error("Sports service returned "+res.status);const json=await res.json();allEvents=json.data||[];if(!userSelected){const e=primary();if(e)selectedId=e.id}s.textContent=allEvents.some(e=>stateOf(e)==="Live")?"● LIVE":"● CONNECTED";s.className="status";$("updatedAt").textContent="Updated: "+new Date().toLocaleTimeString();render()}catch(err){s.textContent="● ERROR";s.className="status bad";if(!allEvents.length)$("mainMount").innerHTML=`<div class="panel"><div class="section">Sports service is waking up. Retrying...</div></div>`;console.error(err)}finally{inFlight=false}}
+function render(){const e=(userSelected&&selectedId&&sportEvents().find(x=>x.id===selectedId))||primary();$("starLegend").style.display=activeSport==="Football"||isTennisTab()?"inline-flex":"none";$("starLegend").innerHTML=activeSport==="Football"?`<span class="star-symbol">★</span> Past WC Winner`:`<span class="star-symbol">★</span> Top 7 seed / Grand Slam winner`;updateDataFooter(e);if(!e){$("heroMount").innerHTML="";$("cardsMount").innerHTML="";$("mainMount").innerHTML=`<div class="panel"><div class="section">No events found.</div></div>`;return}selectedId=e.id;renderHero(e);renderCards(e);renderMain()}
+async function loadData(){if(inFlight)return;inFlight=true;const s=$("apiStatus");try{s.textContent=allEvents.length?"● REFRESHING":"● LOADING";s.className="status warn";const res=await fetch(apiBase+"/api/sports?t="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error("Sports service returned "+res.status);const json=await res.json();allEvents=json.data||[];if(!userSelected){const e=primary();if(e)selectedId=e.id}s.textContent=allEvents.some(e=>stateOf(e)==="Live")?"● LIVE":"● CONNECTED";s.className="status";$("updatedAt").textContent="Updated: "+new Date().toLocaleTimeString();render();scheduleRefresh()}catch(err){s.textContent="● ERROR";s.className="status bad";if(!allEvents.length)$("mainMount").innerHTML=`<div class="panel"><div class="section">Sports service is waking up. Retrying...</div></div>`;console.error(err)}finally{inFlight=false}}
 $("sportSelect").value=activeSport;
-$("subtitle").textContent=subtitleText();loadData();setInterval(loadData,20000);setInterval(render,1000);
+$("subtitle").textContent=subtitleText();loadData();scheduleRefresh();setInterval(render,1000);
 </script>
 </body>
 </html>
