@@ -42,6 +42,35 @@ const TENNIS_URLS = [
   "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
   "https://site.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard"
 ];
+const CRICKET_API_URLS = [
+  process.env.CRICKET_DASHBOARD_API_URL,
+  "http://localhost:3002/api/cricket-dashboard-matches",
+  "https://vipul-s-cricket-dashboard.onrender.com/api/cricket-dashboard-matches",
+  "https://vipuls-cricket-dashboard.onrender.com/api/cricket-dashboard-matches",
+  "https://vipul-cricket-dashboard.onrender.com/api/cricket-dashboard-matches",
+  "https://cricket-dashboard.onrender.com/api/cricket-dashboard-matches"
+].filter(Boolean);
+const INDIA_CRICKET_FALLBACK = [
+  {
+    id: "eng-ind-2026-t20-1-result",
+    category: "Indian Men",
+    matchNo: "1st T20I",
+    teams: ["England", "India"],
+    startISO: "2026-07-01T13:30:00.000Z",
+    venue: "Riverside Ground, Chester-le-Street",
+    state: "Finished",
+    status: "No result - match abandoned due to rain",
+    score: "IND 189/7 (20 ov) | ENG did not bat",
+    scores: [{ team: "IND", score: "189/7", overs: "20" }]
+  },
+  { id: "espn-eng-ind-2026-t20-2", category: "Indian Men", matchNo: "2nd T20I", teams: ["England", "India"], startISO: "2026-07-04T13:30:00.000Z", venue: "Old Trafford, Manchester" },
+  { id: "espn-eng-ind-2026-t20-3", category: "Indian Men", matchNo: "3rd T20I", teams: ["England", "India"], startISO: "2026-07-07T13:30:00.000Z", venue: "Trent Bridge, Nottingham" },
+  { id: "espn-eng-ind-2026-t20-4", category: "Indian Men", matchNo: "4th T20I", teams: ["England", "India"], startISO: "2026-07-09T13:30:00.000Z", venue: "County Ground, Bristol" },
+  { id: "espn-eng-ind-2026-t20-5", category: "Indian Men", matchNo: "5th T20I", teams: ["England", "India"], startISO: "2026-07-11T13:30:00.000Z", venue: "Rose Bowl, Southampton" },
+  { id: "espn-eng-ind-2026-odi-1", category: "Indian Men", matchNo: "1st ODI", teams: ["England", "India"], startISO: "2026-07-14T13:30:00.000Z", venue: "Edgbaston, Birmingham" },
+  { id: "espn-eng-ind-2026-odi-2", category: "Indian Men", matchNo: "2nd ODI", teams: ["England", "India"], startISO: "2026-07-16T13:30:00.000Z", venue: "Sophia Gardens, Cardiff" },
+  { id: "espn-eng-ind-2026-odi-3", category: "Indian Men", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T13:30:00.000Z", venue: "Lord's, London" }
+];
 const WIMBLEDON_GRAPHQL = "https://www.wimbledon.com/graphql";
 const WIMBLEDON_AUTH = "77d2d900-b41b-4a6a-8700-b98f80bef920";
 const ENABLE_WIMBLEDON_ENRICHMENT = process.env.ENABLE_WIMBLEDON_ENRICHMENT === "1";
@@ -528,6 +557,96 @@ function stateRank(state) {
   return { Live: 3, Upcoming: 2, Finished: 1, Unknown: 0 }[state] || 0;
 }
 
+const CRICKET_SHORT = {
+  England: "ENG",
+  India: "IND",
+  Ireland: "IRE",
+  "New Zealand": "NZ",
+  Australia: "AUS",
+  Pakistan: "PAK",
+  "South Africa": "SA",
+  "Sri Lanka": "SL",
+  "West Indies": "WI"
+};
+
+function cricketShort(team = "") {
+  return CRICKET_SHORT[team] || String(team || "").replace(/\s+Women$/i, "W").slice(0, 4).toUpperCase();
+}
+
+function cricketScoreFor(match, team) {
+  const short = cricketShort(team);
+  const row = (match.scores || []).find(score => String(score.team || "").toUpperCase() === short);
+  return row ? [row.score, row.overs ? `(${row.overs} ov)` : ""].filter(Boolean).join(" ") : "";
+}
+
+function cricketWinner(match, team) {
+  const status = String(match.status || "");
+  if (!/\bwon\b/i.test(status)) return false;
+  return new RegExp(`\\b${String(team).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(status)
+    || new RegExp(`\\b${cricketShort(team)}\\b`, "i").test(status);
+}
+
+function cricketScheduledState(match, now = Date.now()) {
+  if (match.state) return match.state;
+  const start = Date.parse(match.startISO || "");
+  if (!Number.isFinite(start)) return "Upcoming";
+  if (start > now) return "Upcoming";
+  const text = `${match.matchNo || ""}`.toLowerCase();
+  const hours = text.includes("odi") ? 9 : text.includes("test") ? 120 : 5;
+  return now - start <= hours * 60 * 60 * 1000 ? "Live" : "Finished";
+}
+
+function cricketScheduleStatus(match, state) {
+  if (match.status) return match.status;
+  if (state === "Upcoming") return match.venue ? `Starts ${match.startISO} - ${match.venue}` : `Starts ${match.startISO}`;
+  if (state === "Live") return "Match in progress - live score pending";
+  return "Result pending update";
+}
+
+function normalizeCricketMatch(match) {
+  const state = cricketScheduledState(match);
+  const teams = (match.teams || []).slice(0, 2).map(team => ({
+    name: team,
+    short: cricketShort(team),
+    score: cricketScoreFor(match, team),
+    winner: cricketWinner(match, team)
+  }));
+  return {
+    id: `cricket-${match.id || `${match.matchNo}-${match.startISO}`}`,
+    sport: "Cricket",
+    competition: "Indian Men",
+    name: match.name || teams.map(t => t.name).join(" vs "),
+    shortName: teams.map(t => t.short).join(" vs "),
+    state,
+    status: cricketScheduleStatus(match, state),
+    clock: "",
+    startISO: match.startISO || "",
+    venue: match.venue || match.liveDetails?.venue || "",
+    stage: match.matchNo || "Indian Men",
+    lineupLabel: match.matchNo || "",
+    teams,
+    scoreText: match.score || (state === "Upcoming" ? "Match not started" : state === "Live" ? "Live score pending" : "Result pending update"),
+    detail: match.playerOfMatch ? `POTM: ${match.playerOfMatch}` : (match.status || ""),
+    url: match.url || "",
+    sortTime: parseDate(match.endISO || match.startISO).getTime()
+  };
+}
+
+async function fetchIndianMenCricket() {
+  for (const url of CRICKET_API_URLS) {
+    try {
+      const response = await http.get(url, { timeout: 12000 });
+      const rows = (response.data?.data || [])
+        .filter(match => match.category === "Indian Men")
+        .map(normalizeCricketMatch);
+      if (rows.length) return dedupe(rows);
+    } catch (err) {
+      if (process.env.DEBUG_SPORTS) console.warn(`Indian Men cricket fetch failed from ${url}:`, err.message);
+    }
+  }
+  return dedupe(INDIA_CRICKET_FALLBACK.map(match => normalizeCricketMatch({ ...match, source: "Fallback Indian Men schedule" })));
+}
+
 function sortDashboard(items) {
   return [...items].sort((a, b) => {
     const live = (b.state === "Live") - (a.state === "Live");
@@ -541,14 +660,15 @@ function sortDashboard(items) {
 }
 
 async function fetchAll() {
-  const [football, tennis] = await Promise.all([fetchFootball(), fetchTennis()]);
-  const data = sortDashboard([...football, ...tennis]);
+  const [football, tennis, cricket] = await Promise.all([fetchFootball(), fetchTennis(), fetchIndianMenCricket()]);
+  const data = sortDashboard([...football, ...tennis, ...cricket]);
   return {
     data,
     meta: {
       total: data.length,
       football: football.length,
       tennis: tennis.length,
+      cricket: cricket.length,
       live: data.filter(x => x.state === "Live").length,
       upcoming: data.filter(x => x.state === "Upcoming").length,
       finished: data.filter(x => x.state === "Finished").length

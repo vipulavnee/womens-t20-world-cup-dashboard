@@ -83,10 +83,11 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 <body>
 <div class="page">
   <div class="topbar">
-    <div class="brand"><div class="logo">S</div><div><div class="title">Vipul's Sports Dashboard</div><div class="subtitle" id="subtitle">Football World Cup + Wimbledon</div></div></div>
+    <div class="brand"><div class="logo">S</div><div><div class="title">Vipul's Sports Dashboard</div><div class="subtitle" id="subtitle">Football World Cup + Wimbledon + Indian Men</div></div></div>
     <div class="actions">
       <select class="select" id="sportSelect" onchange="changeSport(this.value)">
         <option value="Football">Football World Cup</option>
+        <option value="CricketIndiaMen">Indian Men Cricket</option>
         <option value="TennisMen">Wimbledon Gentlemen's Singles</option>
         <option value="TennisWomen">Wimbledon Ladies' Singles</option>
       </select>
@@ -118,8 +119,8 @@ function stateOf(e){return e?.state||"Unknown"}
 function parseTime(e){const d=new Date(e?.startISO||0);return Number.isFinite(d.getTime())?d:new Date(0)}
 function isTennisGents(e){return e.sport==="Tennis"&&String(e.stage||"").toLowerCase().startsWith("men's singles")}
 function isTennisLadies(e){return e.sport==="Tennis"&&String(e.stage||"").toLowerCase().startsWith("women's singles")}
-function sportEvents(){if(activeSport==="All")return allEvents;if(activeSport==="TennisMen")return allEvents.filter(isTennisGents);if(activeSport==="TennisWomen")return allEvents.filter(isTennisLadies);return allEvents.filter(e=>e.sport===activeSport)}
-function eventLabel(){return activeSport==="Football"?"Football World Cup":activeSport==="TennisMen"?"Wimbledon Gentlemen's Singles":activeSport==="TennisWomen"?"Wimbledon Ladies' Singles":"All Sports"}
+function sportEvents(){if(activeSport==="All")return allEvents;if(activeSport==="TennisMen")return allEvents.filter(isTennisGents);if(activeSport==="TennisWomen")return allEvents.filter(isTennisLadies);if(activeSport==="CricketIndiaMen")return allEvents.filter(e=>e.sport==="Cricket"&&e.competition==="Indian Men");return allEvents.filter(e=>e.sport===activeSport)}
+function eventLabel(){return activeSport==="Football"?"Football World Cup":activeSport==="CricketIndiaMen"?"Indian Men Cricket":activeSport==="TennisMen"?"Wimbledon Gentlemen's Singles":activeSport==="TennisWomen"?"Wimbledon Ladies' Singles":"All Sports"}
 function isTennisTab(){return activeSport==="TennisMen"||activeSport==="TennisWomen"}
 function subtitleText(){return isTennisTab()?"Live data":eventLabel()+" • Live data"}
 function isFuture(e){return stateOf(e)==="Upcoming"&&parseTime(e).getTime()>Date.now()-30*60*1000}
@@ -133,6 +134,7 @@ function primary(){
   const nextUpcoming=sortEvents(list.filter(isFuture))[0];
   if(activeSport==="Football")return starLive||live[0]||latestFinished||nextUpcoming||list[0];
   if(isTennisTab())return starLive||live[0]||latestFinished||nextUpcoming||list[0];
+  if(activeSport==="CricketIndiaMen")return live[0]||latestFinished||nextUpcoming||list[0];
   return starLive||live[0]||nextUpcoming||latestFinished||list[0];
 }
 function changeSport(v){activeSport=v;activeFilter="Upcoming";selectedId="";userSelected=false;$("subtitle").textContent=subtitleText();render()}
@@ -158,6 +160,10 @@ function footballResultScoreline(e){
   }
   return e.scoreText||"";
 }
+function cricketResultScoreline(e){
+  const teams=(e.teams||[]).slice(0,2);
+  return teams.length?teams.map(t=>`${t.short||t.name} ${t.score||"--"}`).join(" : "):(e.scoreText||"");
+}
 function tennisFinalScoreline(e,winner){
   const teams=(e.teams||[]).slice(0,2);
   if(teams.length<2)return e.scoreText||"";
@@ -177,6 +183,9 @@ function resultSummary(e){
   }
   if(e.sport==="Tennis"){
     return `<span class="result-line"><span class="result-winner">${tennisPlainName(winner)}</span><span class="result-method">${resultMethod(e)}:</span><span class="result-score blink-result">${tennisFinalScoreline(e,winner)}</span></span>`;
+  }
+  if(e.sport==="Cricket"){
+    return `<span class="result-line"><span class="result-winner">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}:</span><span class="result-score blink-result">${cricketResultScoreline(e)}</span></span>`;
   }
   return `<span class="result-line"><span class="result-winner">${winner.short||winner.name}</span><span class="result-method">${resultMethod(e)}:</span><span class="result-score">${e.scoreText||""}</span></span>`;
 }
@@ -330,6 +339,10 @@ function footballTitle(e){
   const teams=(e.teams||[]).slice(0,2);
   return teams.length>=2?teams.map(footballTeamTitle).join(" vs "):formatRankedText(e.lineupName||e.name);
 }
+function cricketTitle(e){
+  const teams=(e.teams||[]).slice(0,2);
+  return teams.length>=2?teams.map(t=>t.short||t.name).join(" vs "):formatRankedText(e.name);
+}
 function tennisStarPlayer(t){return tennisTopSeven(t)||tennisGrandSlamWinner(t)}
 function isTbdPlayer(t){return /^TBD(?:\s*\/\s*TBD)?$/i.test(String(t?.name||t?.short||"").trim())}
 function tennisRoundOrder(e){
@@ -460,7 +473,7 @@ function cleanTennisStage(stage=""){
     .replace(/\bQuarterfinals?\b/gi,"QF")
     .trim() || stage;
 }
-function rowTitle(e){return e.sport==="Football"?footballTitle(e):e.sport==="Tennis"?tennisTitle(e):formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name)}
+function rowTitle(e){return e.sport==="Football"?footballTitle(e):e.sport==="Tennis"?tennisTitle(e):e.sport==="Cricket"?cricketTitle(e):formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name)}
 function tennisSetList(t){if(Array.isArray(t?.sets)&&t.sets.length)return t.sets.map(s=>String(s.display??s.value??""));return String(t?.score||"").split(/\s+/).filter(Boolean)}
 function tennisSetValue(v){return Number(String(v||"").match(/\d+/)?.[0])}
 function tennisSetComplete(a,b){const x=tennisSetValue(a),y=tennisSetValue(b);if(!Number.isFinite(x)||!Number.isFinite(y))return false;const hi=Math.max(x,y),lo=Math.min(x,y);return (hi>=6&&hi-lo>=2)||(hi===7&&lo>=5)}
@@ -499,8 +512,13 @@ function footballScoreRows(e){
   }
   return teams.map(t=>`<div class="score-row team-football"><b>${participantLabel(t)}</b><span>${t.score??"--"}</span><small></small></div>`).join("")||`<div class="score-row team-football"><b>Score</b><span>${e.scoreText||"--"}</span><small>${footballPhase(e)}</small></div>`;
 }
-function scoreRows(e){if(e.sport==="Tennis")return tennisScoreRows(e);return footballScoreRows(e)}
-function detailStats(e){if(e.sport==="Football"){return [[responsiveLabel("Phase","Ph"),footballPhase(e)],[responsiveLabel("Venue","Ven"),e.venue||"--"]]}return [[responsiveLabel("Stage","Stg"),cleanTennisStage(e.stage)],[responsiveLabel("Court","Ct"),e.venue||"--"]]}
+function cricketScoreRows(e){
+  const teams=(e.teams||[]).slice(0,2);
+  if(teams.length<2)return`<div class="score-row team-tennis"><b>Score</b><span>${e.scoreText||"--"}</span><small>${stateOf(e)}</small></div>`;
+  return teams.map(t=>`<div class="score-row team-tennis"><b>${t.short||t.name}</b><span>${t.score||"--"}</span><small>${t.name}</small></div>`).join("");
+}
+function scoreRows(e){if(e.sport==="Tennis")return tennisScoreRows(e);if(e.sport==="Cricket")return cricketScoreRows(e);return footballScoreRows(e)}
+function detailStats(e){if(e.sport==="Football"){return [[responsiveLabel("Phase","Ph"),footballPhase(e)],[responsiveLabel("Venue","Ven"),e.venue||"--"]]}if(e.sport==="Cricket"){return [[responsiveLabel("Match","Mtch"),e.stage||"--"],[responsiveLabel("Venue","Ven"),e.venue||"--"]]}return [[responsiveLabel("Stage","Stg"),cleanTennisStage(e.stage)],[responsiveLabel("Court","Ct"),e.venue||"--"]]}
 function matchDetail(e){
   if(e?.sport==="Tennis"&&stateOf(e)==="Live")return tennisLiveSummary(e)||displayStatus(e);
   const detail=e.detail||"";
@@ -520,12 +538,16 @@ function renderCards(e){
     $("cardsMount").innerHTML=`<div class="cards tennis-cards"><div class="card blue"><small>${responsiveLabel("Rnd:","Rnd:")}</small><b>${cleanTennisStage(e.stage)||stateOf(e)}</b></div><div class="card orange"><small>${responsiveLabel("Mtch status:","Status:")}</small><b>${tennisMatchStatus(e)}</b></div></div>`;
     return;
   }
+  if(e.sport==="Cricket"){
+    $("cardsMount").innerHTML=`<div class="cards tennis-cards"><div class="card blue"><small>${responsiveLabel("Match:","Mtch:")}</small><b>${e.stage||"--"}</b></div><div class="card orange"><small>${responsiveLabel("Status:","Status:")}</small><b>${displayStatus(e)}</b></div></div>`;
+    return;
+  }
   const next=nextOther();$("cardsMount").innerHTML=`<div class="cards"><div class="card green"><small>Sport:</small><b>${eventLabel()}</b></div><div class="card blue"><small>Phase:</small><b>${e.stage||stateOf(e)}</b></div><div class="card orange"><small>Status:</small><b>${stateOf(e)==="Live"?"Live":displayStatus(e)}</b></div><div class="card purple"><small>Next Other:</small><b>${next?countdown(next):"No other upcoming"}</b></div></div>`;
 }
 function tabLimit(){return isTennisTab()?4:3}
 function getList(){let list=sportEvents(),limit=tabLimit();if(activeFilter==="Next Round Lineup")return nextRoundLineup().slice(0,limit);if(activeFilter==="Stars")return sortEvents(starFilterEvents(list)).slice(0,limit);if(activeFilter!=="All")list=list.filter(e=>stateOf(e)===activeFilter);if(activeFilter==="All"){const live=list.filter(e=>stateOf(e)==="Live").slice(0,1),up=sortEvents(list.filter(isFuture)).slice(0,1),fin=sortEvents(list.filter(e=>stateOf(e)==="Finished")).slice(0,1);const ordered=isTennisTab()?[...live,...fin,...up]:[...live,...up,...fin];return ordered.filter((e,i,a)=>a.findIndex(x=>x.id===e.id)===i).slice(0,limit)}return sortEvents(list).slice(0,limit)}
 function badge(state){return`<span class="pill ${state.toLowerCase()}">${responsiveLabel(state,shortState(state))}</span>`}
-function rowStage(e){return e.sport==="Tennis"?cleanTennisStage(e.stage):e.sport==="Football"?cleanFootballStage(e.stage):e.stage}
+function rowStage(e){return e.sport==="Tennis"?cleanTennisStage(e.stage):e.sport==="Football"?cleanFootballStage(e.stage):e.sport==="Cricket"?e.stage:e.stage}
 function rowStatus(e){const stage=rowStage(e);if(e?.synthetic)return `${displayStatus(e)} • ${scheduleLabel(e)} • ${stage}`;return stateOf(e)==="Finished"?`${resultSummary(e)} <span class="match-status-extra">• ${stage}</span>`:`${displayStatus(e)} • ${stage}`}
 function filterLabel(f){
   if(f==="Upcoming")return responsiveLabel("Upcoming","Up next");
@@ -534,7 +556,7 @@ function filterLabel(f){
   if(f==="Next Round Lineup")return responsiveLabel("Next Rnd Lineup","Next Rnd");
   return f;
 }
-function renderMain(){const filters=["Upcoming","Live","Finished","Stars",...(hasNextRoundTab()?["Next Round Lineup"]:[])];const rows=getList(),next=nextOther();$("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">${responsiveLabel("Recent & Upcoming","Recent / Next")}</div></div><div class="section">${next?`<div class="timer"><div><b>${lineup(next)}${rowTitle(next)}${starTag(next)}</b><div class="match-status">${rowStage(next)} • ${fmtTime(next)}</div></div><div class="timer-right"><small>${responsiveLabel("Next mtch starts in","Starts in")}</small><div class="countdown">${countdown(next)}</div></div></div>`:""}<div class="filter-bar"><div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${filterLabel(f)}</button>`).join("")}</div></div><div class="match-list">${rows.map(e=>`<div class="match-row ${selectedId===e.id?"active":""} ${stateOf(e)==="Finished"?"finished-row":""}" ${e.synthetic?"":`onclick="selectEvent('${e.id}')"`}><div><div class="match-name">${lineup(e)}${rowTitle(e)}${starTag(e)}</div><div class="match-status">${rowStatus(e)}</div></div>${badge(stateOf(e))}</div>`).join("")||`<div class="match-row"><div>No ${activeFilter.toLowerCase()} ${eventLabel()} events found.</div></div>`}</div></div></div>`}
+function renderMain(){const filters=["Upcoming","Live","Finished",...(activeSport==="CricketIndiaMen"?[]:["Stars"]),...(hasNextRoundTab()?["Next Round Lineup"]:[])];if(!filters.includes(activeFilter))activeFilter="Upcoming";const rows=getList(),next=nextOther();$("mainMount").innerHTML=`<div class="panel"><div class="panel-head"><div class="panel-title">${responsiveLabel("Recent & Upcoming","Recent / Next")}</div></div><div class="section">${next?`<div class="timer"><div><b>${lineup(next)}${rowTitle(next)}${starTag(next)}</b><div class="match-status">${rowStage(next)} • ${fmtTime(next)}</div></div><div class="timer-right"><small>${responsiveLabel("Next mtch starts in","Starts in")}</small><div class="countdown">${countdown(next)}</div></div></div>`:""}<div class="filter-bar"><div class="filters">${filters.map(f=>`<button class="filter ${activeFilter===f?"active":""}" onclick="setFilter('${f}')">${filterLabel(f)}</button>`).join("")}</div></div><div class="match-list">${rows.map(e=>`<div class="match-row ${selectedId===e.id?"active":""} ${stateOf(e)==="Finished"?"finished-row":""}" ${e.synthetic?"":`onclick="selectEvent('${e.id}')"`}><div><div class="match-name">${lineup(e)}${rowTitle(e)}${starTag(e)}</div><div class="match-status">${rowStatus(e)}</div></div>${badge(stateOf(e))}</div>`).join("")||`<div class="match-row"><div>No ${activeFilter.toLowerCase()} ${eventLabel()} events found.</div></div>`}</div></div></div>`}
 function render(){const e=(userSelected&&selectedId&&sportEvents().find(x=>x.id===selectedId))||primary();$("starLegend").style.display=activeSport==="Football"||isTennisTab()?"inline-flex":"none";$("starLegend").innerHTML=activeSport==="Football"?`<span class="star-symbol">★</span> Past WC Winner`:`<span class="star-symbol">★</span> Top 7 seed / Grand Slam winner`;if(!e){$("heroMount").innerHTML="";$("cardsMount").innerHTML="";$("mainMount").innerHTML=`<div class="panel"><div class="section">No events found.</div></div>`;return}selectedId=e.id;renderHero(e);renderCards(e);renderMain()}
 async function loadData(){if(inFlight)return;inFlight=true;const s=$("apiStatus");try{s.textContent=allEvents.length?"● REFRESHING":"● LOADING";s.className="status warn";const res=await fetch(apiBase+"/api/sports?t="+Date.now(),{cache:"no-store"});if(!res.ok)throw new Error("Sports service returned "+res.status);const json=await res.json();allEvents=json.data||[];if(!userSelected){const e=primary();if(e)selectedId=e.id}s.textContent=allEvents.some(e=>stateOf(e)==="Live")?"● LIVE":"● CONNECTED";s.className="status";$("updatedAt").textContent="Updated: "+new Date().toLocaleTimeString();render()}catch(err){s.textContent="● ERROR";s.className="status bad";if(!allEvents.length)$("mainMount").innerHTML=`<div class="panel"><div class="section">Sports service is waking up. Retrying...</div></div>`;console.error(err)}finally{inFlight=false}}
 $("sportSelect").value=activeSport;
