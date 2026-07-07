@@ -618,7 +618,7 @@ function inferIndiaMatchNo(match) {
   })[date] || match.matchNo || "Indian Men";
 }
 
-function normalizeCricketMatch(match) {
+function normalizeCricketMatch(match, sourceMeta = {}) {
   const state = cricketScheduledState(match);
   const matchNo = match.matchNo || inferIndiaMatchNo(match);
   const teams = (match.teams || []).slice(0, 2).map(team => ({
@@ -644,6 +644,11 @@ function normalizeCricketMatch(match) {
     scoreText: match.score || (state === "Upcoming" ? "Match not started" : state === "Live" ? "Live score pending" : "Result pending update"),
     detail: match.playerOfMatch ? `POTM: ${match.playerOfMatch}` : (match.status || ""),
     url: match.url || "",
+    dataSource: sourceMeta.source || "Cricket Dashboard",
+    sourceFetchedAt: sourceMeta.fetchedAt || "",
+    sourceCached: Boolean(sourceMeta.cached),
+    sourceStale: Boolean(sourceMeta.stale),
+    sourceFallback: Boolean(sourceMeta.fallback),
     sortTime: parseDate(match.endISO || match.startISO).getTime()
   };
 }
@@ -652,15 +657,25 @@ async function fetchIndianMenCricket() {
   for (const url of CRICKET_API_URLS) {
     try {
       const response = await http.get(url, { timeout: 12000 });
+      const sourceMeta = {
+        source: url.includes("localhost") ? "Local Cricket Dashboard" : "Cricket Dashboard Render",
+        fetchedAt: response.data?.fetchedAt || new Date().toISOString(),
+        cached: Boolean(response.data?.cached),
+        stale: Boolean(response.data?.stale),
+        fallback: false
+      };
       const rows = (response.data?.data || [])
         .filter(match => match.category === "Indian Men")
-        .map(normalizeCricketMatch);
+        .map(match => normalizeCricketMatch(match, sourceMeta));
       if (rows.length) return dedupe(rows);
     } catch (err) {
       if (process.env.DEBUG_SPORTS) console.warn(`Indian Men cricket fetch failed from ${url}:`, err.message);
     }
   }
-  return dedupe(INDIA_CRICKET_FALLBACK.map(match => normalizeCricketMatch({ ...match, source: "Fallback Indian Men schedule" })));
+  return dedupe(INDIA_CRICKET_FALLBACK.map(match => normalizeCricketMatch(
+    { ...match, source: "Fallback Indian Men schedule" },
+    { source: "Fallback schedule", fetchedAt: new Date().toISOString(), cached: false, stale: false, fallback: true }
+  )));
 }
 
 function sortDashboard(items) {
