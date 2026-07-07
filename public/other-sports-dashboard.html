@@ -12,17 +12,17 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .topbar,.brand,.actions,.score-row,.stat,.cards,.timer,.match-row,.filter-bar{display:flex;align-items:center}
 .topbar{justify-content:space-between;margin-bottom:5px}
 .brand{gap:12px}.logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#2563ff,#00e5ff);display:grid;place-items:center;font-weight:950}
-.title{font-size:18px;font-weight:950;letter-spacing:-.04em}.subtitle{font-size:8px;color:var(--muted)}
+.title{font-size:20px;font-weight:950;letter-spacing:-.04em}.subtitle{font-size:8px;color:var(--muted)}
 .actions{gap:8px}.status,.btn,.select{border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-weight:950;font-size:10.4px}
 .status{background:#04111f;color:var(--green)}.status.warn{color:var(--orange)}.status.bad{color:var(--red)}
-.star-legend{color:#dbeafe;white-space:nowrap;font-weight:950}.star-symbol{display:inline-flex;margin-left:4px;color:var(--green);font-size:15.8px;font-weight:950;text-shadow:0 0 9px #00ff8588;vertical-align:middle;line-height:1}
+.star-legend{color:#dbeafe;white-space:nowrap;font-weight:950}.star-symbol{display:inline-flex;margin-left:4px;color:var(--green);font-size:17.6px;font-weight:950;text-shadow:0 0 9px #00ff8588;vertical-align:middle;line-height:1}
 .btn{background:#1d4ed8;color:#fff;cursor:pointer}.select{min-width:260px;background:#071226;color:#fff;border:3px solid var(--yellow);box-shadow:0 0 0 3px #ffb00022,0 0 22px #ffb00080}
 .hero{height:clamp(230px,32vh,290px);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:5px;background:linear-gradient(rgba(0,0,0,.25),rgba(0,0,0,.45)),url('./stadium.png') center/cover no-repeat}
 .hero-grid{height:100%;display:grid;grid-template-columns:1fr .9fr}.hero-left,.hero-right{padding:12px 16px;background:rgba(0,0,0,.34);overflow:hidden}
-.eyebrow{font-size:13.7px;color:var(--green);font-weight:950}.event-title{font-size:20.9px;line-height:1.02;margin:8px 0;font-weight:950;letter-spacing:-.04em}
-.hero-main{display:inline-block;background:rgba(4,17,31,.84);border:1px solid #ffffff22;border-radius:12px;padding:7px 11px;font-size:14.4px;font-weight:950;max-width:100%}
+.eyebrow{font-size:15.2px;color:var(--green);font-weight:950}.event-title{font-size:23.2px;line-height:1.02;margin:8px 0;font-weight:950;letter-spacing:-.04em}
+.hero-main{display:inline-block;background:rgba(4,17,31,.84);border:1px solid #ffffff22;border-radius:12px;padding:7px 11px;font-size:16px;font-weight:950;max-width:100%}
 .score-title{font-weight:950;margin-bottom:5px}.scoreboard{display:grid;gap:6px}.score-row{justify-content:space-between;gap:10px;border:1px solid #ffffff22;border-radius:13px;padding:7px 11px;background:linear-gradient(135deg,#ff007f88,#003dcb88)}
-.score-row b,.score-row span{font-size:15.8px;font-weight:950;color:#fff}.score-row span{margin-left:auto;min-width:72px;text-align:right}.score-row small{font-size:8.8px;font-weight:950;color:#fff}
+.score-row b,.score-row span{font-size:17.6px;font-weight:950;color:#fff}.score-row span{margin-left:auto;min-width:72px;text-align:right}.score-row small{font-size:8.8px;font-weight:950;color:#fff}
 .team-football{background:linear-gradient(135deg,#0891b2,#1d4ed8)!important}.team-tennis{background:linear-gradient(135deg,#84cc16,#16a34a)!important}
 .tennis-score-table{border:1px solid #ffffff28;border-radius:13px;overflow:hidden;background:rgba(4,17,31,.72)}
 .tennis-score-head,.tennis-score-player{display:grid;grid-template-columns:minmax(150px,1fr) repeat(var(--sets,1),48px) var(--point-col,0);align-items:center;gap:5px;padding:5px 7px}
@@ -31,7 +31,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .tennis-score-player.match-winner{background:linear-gradient(90deg,#00ff8526,#1d4ed826)}
 .tennis-score-player.match-winner .tennis-player-name{color:#00ff85}
 .tennis-player-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.2px;font-weight:950;color:#fff}
-.tennis-set-cell,.tennis-sets-won{display:grid;place-items:center;min-height:32px;border-radius:9px;background:#0b172d;color:#fff;font-size:12.2px;font-weight:950;border:1px solid #ffffff18}
+.tennis-set-cell,.tennis-sets-won{display:grid;place-items:center;min-height:32px;border-radius:9px;background:#0b172d;color:#fff;font-size:13.6px;font-weight:950;border:1px solid #ffffff18}
 .tennis-set-cell.set-leader{background:#00ff8524;border-color:#00ff85;color:#00ff85}
 .tennis-set-cell.current-set{box-shadow:inset 0 0 0 2px #ffd43b77}
 .tennis-sets-won{background:#1d4ed833;border-color:#60a5fa;color:#dbeafe}
@@ -40,11 +40,11 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-bottom:5px}.cards.football-cards,.cards.tennis-cards{grid-template-columns:1.1fr .9fr}.card{border:1px solid var(--line);border-radius:15px;background:rgba(4,17,31,.95);padding:8px 11px;min-height:52px;overflow:hidden}.card small{font-size:10.4px;color:var(--muted);font-weight:950;margin-right:6px}.card b{font-size:12.8px}
 .green{border-color:#00ff85!important}.blue{border-color:#2563ff!important}.orange{border-color:#ff7b00!important}.purple{border-color:#8b5cf6!important}.red{border-color:#ff3b5c!important}
 .panel{border:1px solid var(--line);border-radius:18px;background:rgba(4,17,31,.94);overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0}
-.panel-head{padding:7px 12px;border-bottom:1px solid var(--line)}.panel-title{font-size:13.7px;font-weight:950}
+.panel-head{padding:7px 12px;border-bottom:1px solid var(--line)}.panel-title{font-size:15.2px;font-weight:950}
 .section{padding:7px 10px;display:flex;flex-direction:column;flex:1;min-height:0}
 .timer{justify-content:space-between;border:1px solid #00e5ff44;border-radius:14px;padding:7px 10px;margin-bottom:6px;background:#00e5ff12;position:relative;min-height:52px}
 .timer:before{content:"NEXT";position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#04111f;color:var(--red);font-size:8.8px;font-weight:950;padding:2px 7px;border-radius:999px;border:1px solid #00e5ff55}
-.timer b,.countdown{font-size:13.7px}.countdown{color:var(--green);font-weight:950}.timer small{font-weight:950;color:#dbeafe}
+.timer b,.countdown{font-size:15.2px}.countdown{color:var(--green);font-weight:950}.timer small{font-weight:950;color:#dbeafe}
 .filter-bar{gap:7px;margin-bottom:6px}.active-filter-label{padding:4px 8px;border-radius:999px;background:#00ff8518;border:1px solid #00ff8588;color:var(--green);font-size:7.2px;font-weight:950;white-space:nowrap}
 .filters{display:flex;gap:5px;overflow-x:auto;min-width:0}.filter{border:1px solid #1d4ed8;background:#071226;color:white;border-radius:9px;padding:5px 10px;font-size:10.4px;font-weight:950;cursor:pointer;white-space:nowrap}.filter.active{background:linear-gradient(135deg,#1d4ed8,#00a6ff);border-color:#00ff85;box-shadow:0 0 0 2px #00ff8588}
 .match-list{border:1px solid var(--line);border-radius:14px;overflow-y:auto;flex:1;min-height:0}.match-row{justify-content:space-between;gap:12px;min-height:62px;padding:7px 10px;border-bottom:1px solid var(--line);background:#03101d;cursor:pointer}.match-row.active{background:#0b2a4a;border-left:2px solid var(--cyan)}.match-row:last-child{border-bottom:0}
@@ -64,13 +64,13 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .star-tag{display:inline-flex;align-items:center;gap:4px;margin-left:7px;padding:2px 7px;border-radius:999px;border:1px solid #00ff8599;background:#00ff8520;color:#00ff85;font-size:1.04em;font-weight:950;vertical-align:middle}
 .pill{border-radius:999px;padding:6px 10px;font-weight:950;font-size:8px;background:#0b172d}.live{color:var(--green)}.upcoming{color:var(--orange)}.finished{color:#ff8094}
 .footer{display:flex;justify-content:space-between;margin-top:4px;color:#94a3b8;font-size:7.2px}.footer-left{display:flex;gap:10px;align-items:center}
-@media(max-width:900px){.page{height:auto;overflow:auto}.topbar,.actions{align-items:flex-start;flex-direction:column}.select{width:100%}.hero{height:auto}.hero-grid,.cards{grid-template-columns:1fr}.event-title{font-size:17.3px}.score-row b,.score-row span{font-size:13px}}
+@media(max-width:900px){.page{height:auto;overflow:auto}.topbar,.actions{align-items:flex-start;flex-direction:column}.select{width:100%}.hero{height:auto}.hero-grid,.cards{grid-template-columns:1fr}.event-title{font-size:19.2px}.score-row b,.score-row span{font-size:14.4px}}
 @media(max-width:600px){
-  body{overflow-x:hidden}.page{width:100%;padding:5px;gap:0}.topbar{gap:6px;margin-bottom:4px}.brand{gap:8px}.logo{width:30px;height:30px;border-radius:8px}.title{font-size:13px;letter-spacing:0}.subtitle{font-size:7.2px}
+  body{overflow-x:hidden}.page{width:100%;padding:5px;gap:0}.topbar{gap:6px;margin-bottom:4px}.brand{gap:8px}.logo{width:30px;height:30px;border-radius:8px}.title{font-size:14.4px;letter-spacing:0}.subtitle{font-size:7.2px}
   .actions{width:100%;gap:5px}.status,.btn,.select{width:100%;min-width:0;padding:7px 10px;border-radius:10px;font-size:8.8px}.btn{font-size:0}.btn:before{content:"↻";font-size:10.4px}.select{font-size:8.8px;border-width:2px}
-  .hero{border-radius:12px;margin-bottom:4px}.hero-left,.hero-right{padding:8px}.hero-grid{gap:0}.eyebrow{font-size:8.6px}.event-title{font-size:13px;line-height:1.08;margin:5px 0;letter-spacing:0}.hero-main{font-size:9.4px;padding:5px 7px;border-radius:9px}.score-title{font-size:8.8px;margin-bottom:4px}
-  .scoreboard{gap:4px}.score-row{gap:6px;padding:6px 7px;border-radius:10px}.score-row b{font-size:10.1px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.score-row span{font-size:10.8px;min-width:34px}.score-row small{display:none}
-  .tennis-score-table{border-radius:10px}.tennis-score-head,.tennis-score-player{grid-template-columns:minmax(0,1fr) repeat(var(--sets,1),34px) var(--point-col-mobile,0)!important;gap:3px;padding:4px}.tennis-score-head{font-size:6.4px;letter-spacing:0}.tennis-player-name{font-size:8.6px}.tennis-set-cell,.tennis-sets-won{min-height:28px;border-radius:7px;font-size:9.4px}.country-badge{margin-left:4px;padding:1px 4px;font-size:.62em}.rank-badge{padding:1px 4px}
+  .hero{border-radius:12px;margin-bottom:4px}.hero-left,.hero-right{padding:8px}.hero-grid{gap:0}.eyebrow{font-size:9.6px}.event-title{font-size:14.4px;line-height:1.08;margin:5px 0;letter-spacing:0}.hero-main{font-size:10.4px;padding:5px 7px;border-radius:9px}.score-title{font-size:8.8px;margin-bottom:4px}
+  .scoreboard{gap:4px}.score-row{gap:6px;padding:6px 7px;border-radius:10px}.score-row b{font-size:11.2px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.score-row span{font-size:12px;min-width:34px}.score-row small{display:none}
+  .tennis-score-table{border-radius:10px}.tennis-score-head,.tennis-score-player{grid-template-columns:minmax(0,1fr) repeat(var(--sets,1),34px) var(--point-col-mobile,0)!important;gap:3px;padding:4px}.tennis-score-head{font-size:6.4px;letter-spacing:0}.tennis-player-name{font-size:9.6px}.tennis-set-cell,.tennis-sets-won{min-height:28px;border-radius:7px;font-size:10.4px}.country-badge{margin-left:4px;padding:1px 4px;font-size:.62em}.rank-badge{padding:1px 4px}
   .stats{gap:4px;margin-top:4px}.stat{padding:5px 7px;border-radius:9px}.stat small,.stat b{font-size:8px}.stat b{max-width:72%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cards{gap:4px;margin-bottom:4px}.card{border-radius:10px;min-height:42px;padding:6px 8px}.card small{display:block;font-size:7.2px;margin:0 0 2px}.card b{font-size:9.6px;line-height:1.18;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .panel{border-radius:12px}.panel-head{padding:6px 8px}.panel-title{font-size:11.2px}.section{padding:6px}.timer{align-items:flex-start;gap:6px;min-height:46px;padding:6px 7px;border-radius:10px}.timer:before{font-size:6.4px;top:-7px}.timer b,.countdown{font-size:10.4px}.timer-right{text-align:right}.timer small{font-size:6.4px}
