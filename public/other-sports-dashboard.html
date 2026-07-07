@@ -331,10 +331,46 @@ function footballTitle(e){
   return teams.length>=2?teams.map(footballTeamTitle).join(" vs "):formatRankedText(e.lineupName||e.name);
 }
 function tennisStarPlayer(t){return tennisTopSeven(t)||tennisGrandSlamWinner(t)}
-function tennisTeamTitle(t){return `${formatRankedText(t?.name||t?.short||"Player")}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}`}
+function isTbdPlayer(t){return /^TBD(?:\s*\/\s*TBD)?$/i.test(String(t?.name||t?.short||"").trim())}
+function tennisRoundOrder(e){
+  const code=String(e?.roundCode||"").trim();
+  const r=code.match(/^R(\d+)$/i);
+  if(r)return Number(r[1]);
+  return {QF:5,SF:6,Final:7}[code]||0;
+}
+function tennisSourceRoundCode(order){
+  if(order===5)return "R4";
+  if(order===6)return "QF";
+  if(order===7)return "SF";
+  return order>1?`R${order-1}`:"";
+}
+function tennisSourceMatch(e,index){
+  const order=tennisRoundOrder(e),matchNo=Number(e?.roundMatchNumber),sourceCode=tennisSourceRoundCode(order);
+  if(!sourceCode||!matchNo)return null;
+  const sourceNo=(matchNo-1)*2+index+1,draw=e?.drawName||"";
+  return sportEvents().find(x=>x.sport==="Tennis"&&String(x.roundCode||"").toUpperCase()===sourceCode.toUpperCase()&&Number(x.roundMatchNumber)===sourceNo&&(!draw||x.drawName===draw));
+}
+function tennisSourcePlayers(e){
+  const names=(e?.teams||[]).slice(0,2).map(t=>tennisPlainName(t)).filter(Boolean);
+  return names.length===2?names.join(" / "):(e?.name||`Mtch No ${e?.roundMatchNumber||"?"}`);
+}
+function tennisTbdLabel(e,index){
+  const source=tennisSourceMatch(e,index);
+  if(source){
+    const winner=(source.teams||[]).find(t=>t.winner);
+    if(stateOf(source)==="Finished"&&winner)return winner.name||winner.short||"Winner";
+    return `Winner of ${tennisSourcePlayers(source)}`;
+  }
+  return "Winner TBD";
+}
+function tennisDisplayName(e,t,index,short=false){
+  if(isTbdPlayer(t))return tennisTbdLabel(e,index);
+  return short?(t?.short||tennisPlainName(t)):(t?.name||t?.short||"Player");
+}
+function tennisTeamTitle(e,t,index){return `${formatRankedText(tennisDisplayName(e,t,index))}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}`}
 function tennisTitle(e){
   const teams=(e.teams||[]).slice(0,2);
-  return teams.length>=2?teams.map(tennisTeamTitle).join(" vs "):formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name);
+  return teams.length>=2?teams.map((t,i)=>tennisTeamTitle(e,t,i)).join(" vs "):formatRankedText(activeFilter==="Next Round Lineup"?(e.lineupName||e.name):e.name);
 }
 function starTag(e){
   const found=starMatches(e);
@@ -413,9 +449,9 @@ function tennisMatchStatus(e){
   const sets=`Sets: ${shortA} ${a} - ${b} ${shortB}`;
   return stateOf(e)==="Upcoming"?base:`${base} • ${sets}`;
 }
-function tennisFullLabelText(t){return `${t?.seed?`#${t.seed} `:""}${t.name||t.short||"Player"}${t.country?` • ${t.country}`:""}`}
-function tennisFullLabel(t){return `${rankBadge(t?.seed)}${t.name||t.short||"Player"}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
-function tennisMobileLabel(t){return `${rankBadge(t?.seed)}${t.short||tennisPlainName(t)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
+function tennisFullLabelText(e,t,index){return `${t?.seed?`#${t.seed} `:""}${tennisDisplayName(e,t,index)}${t.country?` • ${t.country}`:""}`}
+function tennisFullLabel(e,t,index){return `${rankBadge(t?.seed)}${tennisDisplayName(e,t,index)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
+function tennisMobileLabel(e,t,index){return `${rankBadge(t?.seed)}${tennisDisplayName(e,t,index,true)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
 function tennisPoint(t){const p=String(t?.point??"").trim();return p&&p!=="null"?p:""}
 function tennisScoreRows(e){
   const teams=(e.teams||[]).slice(0,2);
@@ -426,7 +462,7 @@ function tennisScoreRows(e){
   const header=`<div class="tennis-score-head" style="${grid}"><div>${responsiveLabel("Player","Plyr")}</div>${Array.from({length:max},(_,i)=>`<div>${i===max-1&&stateOf(e)==="Live"?responsiveLabel("Games","G"):responsiveLabel(`Set ${i+1}`,`S${i+1}`)}</div>`).join("")}${hasPoints?`<div>${responsiveLabel("Point","Pt")}</div>`:""}</div>`;
   const rows=teams.map((t,row)=>{
     const opp=teams[row?0:1],own=sets[row],other=sets[row?0:1];
-    return `<div class="tennis-score-player ${stateOf(e)==="Finished"&&t.winner?"match-winner":""}" style="${grid}"><div class="tennis-player-name" title="${tennisFullLabelText(t)}"><span class="full-label">${tennisFullLabel(t)}</span><span class="short-label">${tennisMobileLabel(t)}</span></div>${Array.from({length:max},(_,i)=>{const v=own[i]||"--",lead=Number.isFinite(tennisSetValue(v))&&Number.isFinite(tennisSetValue(other[i]))&&tennisSetValue(v)>tennisSetValue(other[i]);return`<div class="tennis-set-cell ${lead?"set-leader":""} ${i===max-1&&stateOf(e)==="Live"?"current-set":""}">${v}</div>`}).join("")}${hasPoints?`<div class="tennis-set-cell current-set">${tennisPoint(t)||"--"}</div>`:""}</div>`;
+    return `<div class="tennis-score-player ${stateOf(e)==="Finished"&&t.winner?"match-winner":""}" style="${grid}"><div class="tennis-player-name" title="${tennisFullLabelText(e,t,row)}"><span class="full-label">${tennisFullLabel(e,t,row)}</span><span class="short-label">${tennisMobileLabel(e,t,row)}</span></div>${Array.from({length:max},(_,i)=>{const v=own[i]||"--",lead=Number.isFinite(tennisSetValue(v))&&Number.isFinite(tennisSetValue(other[i]))&&tennisSetValue(v)>tennisSetValue(other[i]);return`<div class="tennis-set-cell ${lead?"set-leader":""} ${i===max-1&&stateOf(e)==="Live"?"current-set":""}">${v}</div>`}).join("")}${hasPoints?`<div class="tennis-set-cell current-set">${tennisPoint(t)||"--"}</div>`:""}</div>`;
   }).join("");
   return `<div class="tennis-score-table">${header}${rows}</div>`;
 }
