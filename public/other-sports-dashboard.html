@@ -344,22 +344,38 @@ function tennisSourceRoundCode(order){
   if(order===7)return "SF";
   return order>1?`R${order-1}`:"";
 }
+function tennisNamesMatch(a,b){
+  const x=String(a||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const y=String(b||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  return !!x&&!!y&&(x===y||x.includes(y)||y.includes(x));
+}
+function tennisSourceHasPlayer(source,player){
+  const playerNames=[player?.name,player?.short].filter(Boolean);
+  return (source?.teams||[]).some(t=>[t.name,t.short].some(name=>playerNames.some(p=>tennisNamesMatch(name,p))));
+}
 function tennisSourceMatch(e,index){
   const order=tennisRoundOrder(e),matchNo=Number(e?.roundMatchNumber),sourceCode=tennisSourceRoundCode(order);
   if(!sourceCode||!matchNo)return null;
-  const sourceNo=(matchNo-1)*2+index+1,draw=e?.drawName||"";
-  return sportEvents().find(x=>x.sport==="Tennis"&&String(x.roundCode||"").toUpperCase()===sourceCode.toUpperCase()&&Number(x.roundMatchNumber)===sourceNo&&(!draw||x.drawName===draw));
+  const draw=e?.drawName||"",base=(matchNo-1)*2+1;
+  const sources=[base,base+1].map(no=>sportEvents().find(x=>x.sport==="Tennis"&&String(x.roundCode||"").toUpperCase()===sourceCode.toUpperCase()&&Number(x.roundMatchNumber)===no&&(!draw||x.drawName===draw)));
+  const known=(e?.teams||[]).slice(0,2).find((t,i)=>i!==index&&!isTbdPlayer(t));
+  if(known){
+    const knownSource=sources.find(s=>tennisSourceHasPlayer(s,known));
+    const otherSource=sources.find(s=>s&&s!==knownSource);
+    if(otherSource)return otherSource;
+  }
+  return sources[index]||null;
 }
-function tennisSourcePlayers(e){
-  const names=(e?.teams||[]).slice(0,2).map(t=>tennisPlainName(t)).filter(Boolean);
-  return names.length===2?names.join(" / "):(e?.name||`Mtch No ${e?.roundMatchNumber||"?"}`);
+function tennisSourcePlayers(e,depth=0){
+  const names=(e?.teams||[]).slice(0,2).map((t,i)=>isTbdPlayer(t)&&depth<3?tennisTbdLabel(e,i,depth+1):tennisPlainName(t)).filter(Boolean);
+  return names.length===2?names.join(" vs "):(e?.name||`Mtch No ${e?.roundMatchNumber||"?"}`);
 }
-function tennisTbdLabel(e,index){
+function tennisTbdLabel(e,index,depth=0){
   const source=tennisSourceMatch(e,index);
   if(source){
     const winner=(source.teams||[]).find(t=>t.winner);
     if(stateOf(source)==="Finished"&&winner)return winner.name||winner.short||"Winner";
-    return `Winner of ${tennisSourcePlayers(source)}`;
+    return `Winner of ${tennisSourcePlayers(source,depth)}`;
   }
   return "Winner TBD";
 }
