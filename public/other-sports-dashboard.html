@@ -386,14 +386,6 @@ function updateDataFooter(e){
     q.textContent="";
   }
 }
-function previousCricketResult(){
-  const now=parseTime({startISO:new Date().toISOString()}).getTime();
-  const finished=sportEvents()
-    .filter(e=>e.sport==="Cricket"&&stateOf(e)==="Finished"&&parseTime(e).getTime()<=now)
-    .sort((a,b)=>parseTime(b)-parseTime(a));
-  const prev=finished[0];
-  return prev?`${prev.stage||"Prev"}: ${prev.status||prev.scoreText||"Finished"}`:"No finished match";
-}
 function tennisStarPlayer(t){return tennisTopSeven(t)||tennisGrandSlamWinner(t)}
 function isTbdPlayer(t){return /^TBD(?:\s*\/\s*TBD)?$/i.test(String(t?.name||t?.short||"").trim())}
 function tennisRoundOrder(e){
@@ -590,7 +582,7 @@ function renderCards(e){
     return;
   }
   if(e.sport==="Cricket"){
-    $("cardsMount").innerHTML=`<div class="cards tennis-cards"><div class="card blue"><small>${responsiveLabel("Match:","Mtch:")}</small><b>${e.stage||"--"}</b></div><div class="card orange"><small>${responsiveLabel("Status:","Status:")}</small><b>${cricketStatusCard(e)}</b></div><div class="card green"><small>${responsiveLabel("Prev Result:","Prev:")}</small><b>${previousCricketResult()}</b></div></div>`;
+    $("cardsMount").innerHTML=`<div class="cards tennis-cards"><div class="card blue"><small>${responsiveLabel("Match:","Mtch:")}</small><b>${e.stage||"--"}</b></div><div class="card orange"><small>${responsiveLabel("Status:","Status:")}</small><b>${cricketStatusCard(e)}</b></div></div>`;
     return;
   }
   const next=nextOther();$("cardsMount").innerHTML=`<div class="cards"><div class="card green"><small>Sport:</small><b>${eventLabel()}</b></div><div class="card blue"><small>Phase:</small><b>${e.stage||stateOf(e)}</b></div><div class="card orange"><small>Status:</small><b>${stateOf(e)==="Live"?"Live":displayStatus(e)}</b></div><div class="card purple"><small>Next Other:</small><b>${next?countdown(next):"No other upcoming"}</b></div></div>`;
