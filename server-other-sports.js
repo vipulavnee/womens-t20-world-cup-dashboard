@@ -574,10 +574,11 @@ function cricketShort(team = "") {
   return CRICKET_SHORT[team] || String(team || "").replace(/\s+Women$/i, "W").slice(0, 4).toUpperCase();
 }
 
-function cricketScoreFor(match, team) {
+function cricketScoreFor(match, team, state = "") {
   const short = cricketShort(team);
   const row = (match.scores || []).find(score => String(score.team || "").toUpperCase() === short);
-  return row ? [row.score, row.overs ? `(${row.overs} ov)` : ""].filter(Boolean).join(" ") : "";
+  if (row) return [row.score, row.overs ? `(${row.overs} ov)` : ""].filter(Boolean).join(" ");
+  return state === "Live" && (match.scores || []).length ? "Yet to bat" : "";
 }
 
 function cricketWinner(match, team) {
@@ -621,10 +622,11 @@ function inferIndiaMatchNo(match) {
 function normalizeCricketMatch(match, sourceMeta = {}) {
   const state = cricketScheduledState(match);
   const matchNo = match.matchNo || inferIndiaMatchNo(match);
+  const inningsStatus = match.liveDetails?.requiredRR || (state === "Live" && (match.scores || []).length === 1 ? "First innings" : "");
   const teams = (match.teams || []).slice(0, 2).map(team => ({
     name: team,
     short: cricketShort(team),
-    score: cricketScoreFor(match, team),
+    score: cricketScoreFor(match, team, state),
     winner: cricketWinner(match, team)
   }));
   return {
@@ -643,6 +645,7 @@ function normalizeCricketMatch(match, sourceMeta = {}) {
     teams,
     scoreText: match.score || (state === "Upcoming" ? "Match not started" : state === "Live" ? "Live score pending" : "Result pending update"),
     detail: match.playerOfMatch ? `POTM: ${match.playerOfMatch}` : (match.status || ""),
+    inningsStatus,
     url: match.url || "",
     dataSource: sourceMeta.source || "Cricket Dashboard",
     sourceFetchedAt: sourceMeta.fetchedAt || "",
