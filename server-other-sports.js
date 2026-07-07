@@ -45,6 +45,7 @@ const TENNIS_URLS = [
 const CRICKET_API_URLS = [
   process.env.CRICKET_DASHBOARD_API_URL,
   "http://localhost:3002/api/cricket-dashboard-matches",
+  "https://womens-t20-world-cup-dashboard.onrender.com/api/cricket-dashboard-matches",
   "https://vipul-s-cricket-dashboard.onrender.com/api/cricket-dashboard-matches",
   "https://vipuls-cricket-dashboard.onrender.com/api/cricket-dashboard-matches",
   "https://vipul-cricket-dashboard.onrender.com/api/cricket-dashboard-matches",
@@ -603,8 +604,23 @@ function cricketScheduleStatus(match, state) {
   return "Result pending update";
 }
 
+function inferIndiaMatchNo(match) {
+  const date = String(match.startISO || "").slice(0, 10);
+  return ({
+    "2026-07-01": "1st T20I",
+    "2026-07-04": "2nd T20I",
+    "2026-07-07": "3rd T20I",
+    "2026-07-09": "4th T20I",
+    "2026-07-11": "5th T20I",
+    "2026-07-14": "1st ODI",
+    "2026-07-16": "2nd ODI",
+    "2026-07-19": "3rd ODI"
+  })[date] || match.matchNo || "Indian Men";
+}
+
 function normalizeCricketMatch(match) {
   const state = cricketScheduledState(match);
+  const matchNo = match.matchNo || inferIndiaMatchNo(match);
   const teams = (match.teams || []).slice(0, 2).map(team => ({
     name: team,
     short: cricketShort(team),
@@ -622,8 +638,8 @@ function normalizeCricketMatch(match) {
     clock: "",
     startISO: match.startISO || "",
     venue: match.venue || match.liveDetails?.venue || "",
-    stage: match.matchNo || "Indian Men",
-    lineupLabel: match.matchNo || "",
+    stage: matchNo,
+    lineupLabel: matchNo,
     teams,
     scoreText: match.score || (state === "Upcoming" ? "Match not started" : state === "Live" ? "Live score pending" : "Result pending update"),
     detail: match.playerOfMatch ? `POTM: ${match.playerOfMatch}` : (match.status || ""),
