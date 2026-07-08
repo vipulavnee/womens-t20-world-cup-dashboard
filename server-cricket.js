@@ -106,6 +106,54 @@ const TEST_CHAMPIONSHIP_FIXTURES = [
     startISO: "2026-07-03T14:00:00.000Z",
     endISO: "2026-07-07T21:00:00.000Z",
     venue: "Sir Vivian Richards Stadium, North Sound, Antigua"
+  },
+  {
+    id: "wtc-aus-ban-2026-1",
+    matchNo: "1st Test",
+    teams: ["Australia", "Bangladesh"],
+    startISO: "2026-08-13T00:00:00.000Z",
+    endISO: "2026-08-17T23:59:00.000Z",
+    venue: "Marrara Oval, Darwin",
+    timeTBA: true
+  },
+  {
+    id: "wtc-aus-ban-2026-2",
+    matchNo: "2nd Test",
+    teams: ["Australia", "Bangladesh"],
+    startISO: "2026-08-22T00:00:00.000Z",
+    endISO: "2026-08-26T23:59:00.000Z",
+    venue: "Great Barrier Reef Arena, Mackay",
+    timeTBA: true
+  },
+  {
+    id: "wtc-eng-pak-2026-1",
+    matchNo: "1st Test",
+    teams: ["England", "Pakistan"],
+    startISO: "2026-08-19T00:00:00.000Z",
+    endISO: "2026-08-23T23:59:00.000Z",
+    venue: "Headingley, Leeds",
+    url: "https://www.espncricinfo.com/series/pakistan-tour-in-england-2026-1496563",
+    timeTBA: true
+  },
+  {
+    id: "wtc-eng-pak-2026-2",
+    matchNo: "2nd Test",
+    teams: ["England", "Pakistan"],
+    startISO: "2026-08-27T00:00:00.000Z",
+    endISO: "2026-08-31T23:59:00.000Z",
+    venue: "Lord's, London",
+    url: "https://www.espncricinfo.com/series/pakistan-tour-in-england-2026-1496563",
+    timeTBA: true
+  },
+  {
+    id: "wtc-eng-pak-2026-3",
+    matchNo: "3rd Test",
+    teams: ["England", "Pakistan"],
+    startISO: "2026-09-09T00:00:00.000Z",
+    endISO: "2026-09-13T23:59:00.000Z",
+    venue: "Edgbaston, Birmingham",
+    url: "https://www.espncricinfo.com/series/pakistan-tour-in-england-2026-1496563",
+    timeTBA: true
   }
 ];
 
@@ -1406,7 +1454,7 @@ async function scrapeWomensT20WorldCup() {
       name: `${fixture.teams[0]} vs ${fixture.teams[1]}`,
       category: ENG_NZ_CATEGORY,
       state: "Upcoming",
-      status: `Starts ${fixture.startISO.slice(0, 10)} - ${fixture.venue}`,
+      status: scheduledFixtureStatus(fixture, "Upcoming"),
       source: "Local schedule copy",
       score: "Match not started",
       scores: [],
