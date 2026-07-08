@@ -25,7 +25,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .score-row b,.score-row span{font-size:19.36px;font-weight:950;color:#fff}.score-row span{margin-left:auto;min-width:72px;text-align:right}.score-row small{font-size:9.68px;font-weight:950;color:#fff}
 .team-football{background:linear-gradient(135deg,#0891b2,#1d4ed8)!important}.team-tennis{background:linear-gradient(135deg,#84cc16,#16a34a)!important}
 .tennis-score-table{border:1px solid #ffffff28;border-radius:13px;overflow:hidden;background:rgba(4,17,31,.72)}
-.tennis-score-head,.tennis-score-player{display:grid;grid-template-columns:minmax(150px,1fr) repeat(var(--sets,1),42px) var(--point-col,0);align-items:center;gap:4px;padding:4px 6px}
+.tennis-score-head,.tennis-score-player{display:grid;grid-template-columns:minmax(150px,1fr) repeat(var(--sets,1),42px) var(--point-col,0) var(--break-col,0);align-items:center;gap:4px;padding:4px 6px}
 .tennis-score-head{background:#00000044;color:#cbd5e1;font-size:7.92px;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
 .tennis-score-player{border-top:1px solid #ffffff18}
 .tennis-score-player.match-winner{background:linear-gradient(90deg,#00ff8526,#1d4ed826)}
@@ -70,7 +70,7 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
   .actions{width:100%;gap:5px}.status,.btn,.select{width:100%;min-width:0;padding:7px 10px;border-radius:10px;font-size:9.68px}.btn{font-size:0}.btn:before{content:"↻";font-size:11.44px}.select{font-size:9.68px;border-width:2px}
   .hero{border-radius:12px;margin-bottom:4px}.hero-left,.hero-right{padding:8px}.hero-grid{gap:0}.eyebrow{font-size:10.56px}.event-title{font-size:15.84px;line-height:1.08;margin:5px 0;letter-spacing:0}.hero-main{font-size:11.44px;padding:5px 7px;border-radius:9px}.score-title{font-size:9.68px;margin-bottom:4px}
   .scoreboard{gap:4px}.score-row{gap:6px;padding:6px 7px;border-radius:10px}.score-row b{font-size:12.32px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.score-row span{font-size:13.2px;min-width:34px}.score-row small{display:none}
-  .tennis-score-table{border-radius:10px}.tennis-score-head,.tennis-score-player{grid-template-columns:minmax(0,1fr) repeat(var(--sets,1),34px) var(--point-col-mobile,0)!important;gap:3px;padding:4px}.tennis-score-head{font-size:7.04px;letter-spacing:0}.tennis-player-name{font-size:10.56px}.tennis-set-cell,.tennis-sets-won{min-height:28px;border-radius:7px;font-size:11.44px}.country-badge{margin-left:4px;padding:1px 4px;font-size:.62em}.rank-badge{padding:1px 4px}
+  .tennis-score-table{border-radius:10px}.tennis-score-head,.tennis-score-player{grid-template-columns:minmax(0,1fr) repeat(var(--sets,1),34px) var(--point-col-mobile,0) var(--break-col-mobile,0)!important;gap:3px;padding:4px}.tennis-score-head{font-size:7.04px;letter-spacing:0}.tennis-player-name{font-size:10.56px}.tennis-set-cell,.tennis-sets-won{min-height:28px;border-radius:7px;font-size:11.44px}.country-badge{margin-left:4px;padding:1px 4px;font-size:.62em}.rank-badge{padding:1px 4px}
   .stats{gap:4px;margin-top:4px}.stat{padding:5px 7px;border-radius:9px}.stat small,.stat b{font-size:8.8px}.stat b{max-width:72%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cards{gap:4px;margin-bottom:4px}.card{border-radius:10px;min-height:42px;padding:6px 8px}.card small{display:block;font-size:7.92px;margin:0 0 2px}.card b{font-size:10.56px;line-height:1.18;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .panel{border-radius:12px}.panel-head{padding:6px 8px}.panel-title{font-size:12.32px}.section{padding:6px}.timer{align-items:flex-start;gap:6px;min-height:46px;padding:6px 7px;border-radius:10px}.timer:before{font-size:7.04px;top:-7px}.timer b,.countdown{font-size:11.44px}.timer-right{text-align:right}.timer small{font-size:7.04px}
@@ -535,16 +535,18 @@ function tennisFullLabelText(e,t,index){return `${t?.seed?`#${t.seed} `:""}${ten
 function tennisFullLabel(e,t,index){return `${rankBadge(t?.seed)}${tennisDisplayName(e,t,index)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
 function tennisMobileLabel(e,t,index){return `${rankBadge(t?.seed)}${tennisDisplayName(e,t,index,true)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
 function tennisPoint(t){const p=String(t?.point??"").trim();return p&&p!=="null"?p:""}
+function tennisBreakStat(t){const s=t?.stats||{};return [s.serviceBreaks,s.breakPointsWon,s.breakPoints].map(v=>String(v??"").trim()).find(v=>v&&v!=="null")||""}
 function tennisScoreRows(e){
   const teams=(e.teams||[]).slice(0,2);
   if(teams.length<2)return`<div class="score-row"><b>Score</b><span>${e.scoreText||"--"}</span><small>${stateOf(e)}</small></div>`;
   const sets=teams.map(tennisSetList),max=Math.max(1,...sets.map(s=>s.length));
   const hasPoints=stateOf(e)==="Live"&&teams.some(t=>tennisPoint(t));
-  const grid=`--sets:${max};--point-col:${hasPoints?"58px":"0px"};--point-col-mobile:${hasPoints?"40px":"0px"}`;
-  const header=`<div class="tennis-score-head" style="${grid}"><div>${responsiveLabel("Player","Plyr")}</div>${Array.from({length:max},(_,i)=>`<div>${i===max-1&&stateOf(e)==="Live"?responsiveLabel("Cur Set","Cur"):responsiveLabel(`Set ${i+1}`,`S${i+1}`)}</div>`).join("")}${hasPoints?`<div>${responsiveLabel("Point","Pt")}</div>`:""}</div>`;
+  const hasBreaks=teams.some(t=>tennisBreakStat(t));
+  const grid=`--sets:${max};--point-col:${hasPoints?"58px":"0px"};--point-col-mobile:${hasPoints?"40px":"0px"};--break-col:${hasBreaks?"48px":"0px"};--break-col-mobile:${hasBreaks?"34px":"0px"}`;
+  const header=`<div class="tennis-score-head" style="${grid}"><div>${responsiveLabel("Player","Plyr")}</div>${Array.from({length:max},(_,i)=>`<div>${i===max-1&&stateOf(e)==="Live"?responsiveLabel("Cur Set","Cur"):responsiveLabel(`Set ${i+1}`,`S${i+1}`)}</div>`).join("")}${hasPoints?`<div>${responsiveLabel("Point","Pt")}</div>`:""}${hasBreaks?`<div>${responsiveLabel("Breaks","Brk")}</div>`:""}</div>`;
   const rows=teams.map((t,row)=>{
     const opp=teams[row?0:1],own=sets[row],other=sets[row?0:1];
-    return `<div class="tennis-score-player ${stateOf(e)==="Finished"&&t.winner?"match-winner":""}" style="${grid}"><div class="tennis-player-name" title="${tennisFullLabelText(e,t,row)}"><span class="full-label">${tennisFullLabel(e,t,row)}</span><span class="short-label">${tennisMobileLabel(e,t,row)}</span></div>${Array.from({length:max},(_,i)=>{const v=own[i]||"--",lead=Number.isFinite(tennisSetValue(v))&&Number.isFinite(tennisSetValue(other[i]))&&tennisSetValue(v)>tennisSetValue(other[i]);return`<div class="tennis-set-cell ${lead?"set-leader":""} ${i===max-1&&stateOf(e)==="Live"?"current-set":""}">${v}</div>`}).join("")}${hasPoints?`<div class="tennis-set-cell current-set">${tennisPoint(t)||"--"}</div>`:""}</div>`;
+    return `<div class="tennis-score-player ${stateOf(e)==="Finished"&&t.winner?"match-winner":""}" style="${grid}"><div class="tennis-player-name" title="${tennisFullLabelText(e,t,row)}"><span class="full-label">${tennisFullLabel(e,t,row)}</span><span class="short-label">${tennisMobileLabel(e,t,row)}</span></div>${Array.from({length:max},(_,i)=>{const v=own[i]||"--",lead=Number.isFinite(tennisSetValue(v))&&Number.isFinite(tennisSetValue(other[i]))&&tennisSetValue(v)>tennisSetValue(other[i]);return`<div class="tennis-set-cell ${lead?"set-leader":""} ${i===max-1&&stateOf(e)==="Live"?"current-set":""}">${v}</div>`}).join("")}${hasPoints?`<div class="tennis-set-cell current-set">${tennisPoint(t)||"--"}</div>`:""}${hasBreaks?`<div class="tennis-set-cell">${tennisBreakStat(t)||"--"}</div>`:""}</div>`;
   }).join("");
   return `<div class="tennis-score-table">${header}${rows}</div>`;
 }

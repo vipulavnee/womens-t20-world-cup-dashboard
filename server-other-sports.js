@@ -395,6 +395,41 @@ function seededPlayerShort(player) {
   return player.seed ? `[${player.seed}] ${player.short}` : player.short;
 }
 
+function statValueByNames(stats = [], names = []) {
+  const wanted = names.map(name => String(name).toLowerCase());
+  const row = stats.find(stat => {
+    const keys = [stat.name, stat.displayName, stat.shortDisplayName, stat.abbreviation, stat.label]
+      .filter(Boolean)
+      .map(value => String(value).toLowerCase());
+    return keys.some(key => wanted.includes(key));
+  });
+  return row?.displayValue ?? row?.value ?? "";
+}
+
+function tennisBreakStats(c) {
+  const stats = c?.statistics || [];
+  return {
+    serviceBreaks: statValueByNames(stats, [
+      "serviceBreaks",
+      "service breaks",
+      "breaks of serve",
+      "return games won",
+      "returnGamesWon"
+    ]),
+    breakPointsWon: statValueByNames(stats, [
+      "breakPointsWon",
+      "break points won",
+      "break point conversions",
+      "breakPointsConverted"
+    ]),
+    breakPoints: statValueByNames(stats, [
+      "breakPoints",
+      "break points",
+      "break point opportunities"
+    ])
+  };
+}
+
 function normalizeTennisCompetition(comp, event, sourceLeague) {
   const players = (comp.competitors || []).map(c => ({
     id: c.id,
@@ -404,7 +439,8 @@ function normalizeTennisCompetition(comp, event, sourceLeague) {
     sets: tennisSets(c),
     winner: Boolean(c.winner),
     seed: c.curatedRank?.current || "",
-    country: tennisCountry(c)
+    country: tennisCountry(c),
+    stats: tennisBreakStats(c)
   }));
   const seededNames = players.map(seededPlayerName);
   const seededShortNames = players.map(seededPlayerShort);
