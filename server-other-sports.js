@@ -329,6 +329,15 @@ function statPair(won, total) {
   return `${won}/${total}`;
 }
 
+function wimbledonTeamNames(team = []) {
+  const first = team?.[0] || {};
+  return [
+    first.displayNameA,
+    [first.firstNameA, first.lastNameA].filter(Boolean).join(" "),
+    first.lastNameA
+  ].filter(Boolean);
+}
+
 async function fetchWimbledonSlamtrackerStats(matchId) {
   if (!matchId) return new Map();
   const query = `
@@ -376,6 +385,76 @@ async function fetchWimbledonSlamtrackerStats(matchId) {
     return map;
   } catch (err) {
     if (process.env.DEBUG_SPORTS) console.warn(`Wimbledon Slamtracker stats failed for ${matchId}:`, err.message);
+    return new Map();
+  }
+}
+
+async function fetchWimbledonCompletedMatchIds() {
+  const daysQuery = `
+    query CompletedMatchDays($year: Int!) {
+      completedMatchDays(year: $year) {
+        tournDay
+        displayDay
+        quals
+      }
+    }
+  `;
+  const matchesQuery = `
+    query CompletedMatches($year: Int!, $day: Int!) {
+      completedMatches(year: $year, tournDay: $day) {
+        matches {
+          matchId
+          eventCode
+          team1 { displayNameA firstNameA lastNameA }
+          team2 { displayNameA firstNameA lastNameA }
+        }
+      }
+    }
+  `;
+  try {
+    const dayRes = await http.post(WIMBLEDON_GRAPHQL, {
+      operationName: "CompletedMatchDays",
+      query: daysQuery,
+      variables: { year: 2026 }
+    }, {
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": WIMBLEDON_AUTH
+      },
+      timeout: 12000
+    });
+    const days = (dayRes.data?.data?.completedMatchDays || [])
+      .filter(day => !day.quals)
+      .slice(0, 10);
+    const results = await Promise.allSettled(days.map(day => http.post(WIMBLEDON_GRAPHQL, {
+      operationName: "CompletedMatches",
+      query: matchesQuery,
+      variables: { year: 2026, day: Number(day.tournDay) }
+    }, {
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": WIMBLEDON_AUTH
+      },
+      timeout: 12000
+    })));
+    const map = new Map();
+    for (const result of results) {
+      if (result.status !== "fulfilled") continue;
+      for (const match of result.value.data?.data?.completedMatches?.matches || []) {
+        if (!["MS", "LS"].includes(match.eventCode) || !match.matchId) continue;
+        const names1 = wimbledonTeamNames(match.team1);
+        const names2 = wimbledonTeamNames(match.team2);
+        for (const key of tennisPairKeys([names1[0], names2[0]])) map.set(key, match.matchId);
+        for (const left of names1) {
+          for (const right of names2) {
+            for (const key of tennisPairKeys([left, right])) map.set(key, match.matchId);
+          }
+        }
+      }
+    }
+    return map;
+  } catch (err) {
+    if (process.env.DEBUG_SPORTS) console.warn("Wimbledon completed match id lookup failed:", err.message);
     return new Map();
   }
 }
@@ -623,9 +702,10 @@ async function fetchFootball() {
 }
 
 async function fetchTennis() {
-  const [scoreResults, wimbledonScores] = await Promise.all([
+  const [scoreResults, wimbledonScores, wimbledonCompletedIds] = await Promise.all([
     Promise.allSettled(TENNIS_URLS.map(url => http.get(url))),
-    ENABLE_WIMBLEDON_ENRICHMENT ? fetchWimbledonLiveScores() : Promise.resolve(new Map())
+    ENABLE_WIMBLEDON_ENRICHMENT ? fetchWimbledonLiveScores() : Promise.resolve(new Map()),
+    ENABLE_WIMBLEDON_ENRICHMENT ? fetchWimbledonCompletedMatchIds() : Promise.resolve(new Map())
   ]);
   const rows = [];
   for (const result of scoreResults) {
@@ -656,6 +736,31 @@ async function fetchTennis() {
         }
       }));
     }
+  }
+  const recentFinished = rows
+    .filter(row => row.state === "Finished")
+    .sort((a, b) => b.sortTime - a.sortTime)
+    .slice(0, 16);
+  const finishedStats = new Map();
+  await Promise.allSettled(recentFinished.map(async row => {
+    const keys = tennisPairKeys((row.teams || []).map(t => t.short || t.name));
+    const matchId = keys.map(key => wimbledonCompletedIds.get(key)).find(Boolean);
+    if (!matchId || finishedStats.has(matchId)) return;
+    finishedStats.set(matchId, await fetchWimbledonSlamtrackerStats(matchId));
+  }));
+  for (const row of recentFinished) {
+    const keys = tennisPairKeys((row.teams || []).map(t => t.short || t.name));
+    const matchId = keys.map(key => wimbledonCompletedIds.get(key)).find(Boolean);
+    const statsMap = finishedStats.get(matchId);
+    if (!statsMap) continue;
+    row.wimbledonMatchId = matchId;
+    row.teams = (row.teams || []).map(team => ({
+      ...team,
+      stats: {
+        ...(team.stats || {}),
+        ...(statsMap.get(tennisPersonKey(team.short || team.name)) || {})
+      }
+    }));
   }
   return withTennisLineupLabels(dedupe(rows));
 }
