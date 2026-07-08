@@ -323,6 +323,63 @@ function isCertificateError(err) {
     .includes(err?.code);
 }
 
+function statPair(won, total) {
+  if (won === null || won === undefined || won === "") return "";
+  if (total === null || total === undefined || total === "") return String(won);
+  return `${won}/${total}`;
+}
+
+async function fetchWimbledonSlamtrackerStats(matchId) {
+  if (!matchId) return new Map();
+  const query = `
+    query Slamtracker($matchId: String!, $year: String!) {
+      slamtracker: slamtrackerPipeline(matchId: $matchId, year: $year) {
+        matchId
+        year
+        match
+      }
+    }
+  `;
+  try {
+    const res = await http.post(WIMBLEDON_GRAPHQL, {
+      operationName: "Slamtracker",
+      query,
+      variables: { matchId: String(matchId), year: "2026" }
+    }, {
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": WIMBLEDON_AUTH
+      },
+      timeout: 12000
+    });
+    const raw = res.data?.data?.slamtracker?.match;
+    if (!raw) return new Map();
+    const match = typeof raw === "string" ? JSON.parse(raw) : raw;
+    const stats = match?.base_stats?.match || {};
+    const teams = [
+      { player: match?.team1, stats: stats.team_1 },
+      { player: match?.team2, stats: stats.team_2 }
+    ];
+    const map = new Map();
+    for (const row of teams) {
+      const name = row.player?.displayNameA || [row.player?.firstNameA, row.player?.lastNameA].filter(Boolean).join(" ");
+      if (!name) continue;
+      const payload = {
+        breakPointsWon: statPair(row.stats?.t_bp_w, row.stats?.t_bp),
+        breakPoints: row.stats?.t_bp ?? "",
+        breakPointConversionPct: row.stats?.bp_con_pct ?? ""
+      };
+      for (const key of tennisPairKeys([name])) map.set(key, payload);
+      map.set(tennisPersonKey(name), payload);
+      if (row.player?.lastNameA) map.set(tennisPersonKey(row.player.lastNameA), payload);
+    }
+    return map;
+  } catch (err) {
+    if (process.env.DEBUG_SPORTS) console.warn(`Wimbledon Slamtracker stats failed for ${matchId}:`, err.message);
+    return new Map();
+  }
+}
+
 async function fetchWimbledonLiveScores() {
   const query = `
     query LiveScores {
@@ -359,19 +416,26 @@ async function fetchWimbledonLiveScores() {
       timeout: 15000
     });
     const map = new Map();
-    for (const match of res.data?.data?.liveScores?.matches || []) {
+    const matches = res.data?.data?.liveScores?.matches || [];
+    const statsByMatch = new Map();
+    await Promise.allSettled(matches.map(async match => {
+      if (match.matchId) statsByMatch.set(match.matchId, await fetchWimbledonSlamtrackerStats(match.matchId));
+    }));
+    for (const match of matches) {
       const names = [
         match.team1?.[0]?.displayNameA,
         match.team2?.[0]?.displayNameA
       ];
       const gameScore = match.score?.gameScore || [];
+      const statsMap = statsByMatch.get(match.matchId) || new Map();
       const payload = {
         wimbledonMatchId: match.matchId,
         wimbledonStatus: match.status,
         pointScore: gameScore?.some(v => v !== null && v !== undefined) ? gameScore.map(v => v ?? "").join(" - ") : "",
         players: names.map((name, index) => ({
           name,
-          point: gameScore?.[index] ?? ""
+          point: gameScore?.[index] ?? "",
+          stats: statsMap.get(tennisPersonKey(name)) || {}
         }))
       };
       for (const key of tennisPairKeys(names)) map.set(key, payload);
@@ -585,7 +649,11 @@ async function fetchTennis() {
       row.wimbledonStatus = enrichment.wimbledonStatus;
       row.teams = (row.teams || []).map((team, index) => ({
         ...team,
-        point: enrichment.players?.find(player => tennisPersonKey(player.name) === tennisPersonKey(team.short || team.name))?.point ?? ""
+        point: enrichment.players?.find(player => tennisPersonKey(player.name) === tennisPersonKey(team.short || team.name))?.point ?? "",
+        stats: {
+          ...(team.stats || {}),
+          ...(enrichment.players?.find(player => tennisPersonKey(player.name) === tennisPersonKey(team.short || team.name))?.stats || {})
+        }
       }));
     }
   }
