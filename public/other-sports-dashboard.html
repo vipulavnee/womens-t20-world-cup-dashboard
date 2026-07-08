@@ -553,8 +553,8 @@ function tennisMatchStatus(e){
   return stateOf(e)==="Upcoming"?base:[base,sets,serveText].filter(Boolean).join(" • ");
 }
 function tennisFullLabelText(e,t,index){return `${t?.seed?`#${t.seed} `:""}${tennisDisplayName(e,t,index)}${t.country?` • ${t.country}`:""}`}
-function tennisFullLabel(e,t,index){return `${rankBadge(t?.seed)}${tennisDisplayName(e,t,index)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
-function tennisMobileLabel(e,t,index){return `${rankBadge(t?.seed)}${tennisDisplayName(e,t,index,true)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
+function tennisFullLabel(e,t,index){return `${rankBadge(t?.seed)}${tennisDisplayName(e,t,index)}${tennisServeBadge(t)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
+function tennisMobileLabel(e,t,index){return `${rankBadge(t?.seed)}${tennisDisplayName(e,t,index,true)}${tennisServeBadge(t)}${tennisStarPlayer(t)?`<span class="star-symbol">★</span>`:""}${countryBadge(t?.country)}`}
 function tennisPoint(t){const p=String(t?.point??"").trim();return p&&p!=="null"?p:""}
 function tennisBreakStat(t){const s=t?.stats||{};return [s.serviceBreaks,s.breakPointsWon,s.breakPoints].map(v=>String(v??"").trim()).find(v=>v&&v!=="null")||""}
 function tennisScoreRows(e){
@@ -562,7 +562,7 @@ function tennisScoreRows(e){
   if(teams.length<2)return`<div class="score-row"><b>Score</b><span>${e.scoreText||"--"}</span><small>${stateOf(e)}</small></div>`;
   const sets=teams.map(tennisSetList),max=Math.max(1,...sets.map(s=>s.length));
   const hasPoints=stateOf(e)==="Live"&&teams.some(t=>tennisPoint(t));
-  const hasBreaks=teams.some(t=>tennisBreakStat(t));
+  const hasBreaks=stateOf(e)==="Live"||teams.some(t=>tennisBreakStat(t));
   const grid=`--sets:${max};--point-col:${hasPoints?"58px":"0px"};--point-col-mobile:${hasPoints?"40px":"0px"};--break-col:${hasBreaks?"48px":"0px"};--break-col-mobile:${hasBreaks?"34px":"0px"}`;
   const header=`<div class="tennis-score-head" style="${grid}"><div>Player</div>${Array.from({length:max},(_,i)=>`<div>Set ${i+1}</div>`).join("")}${hasPoints?`<div>Point</div>`:""}${hasBreaks?`<div>Breaks</div>`:""}</div>`;
   const rows=teams.map((t,row)=>{
