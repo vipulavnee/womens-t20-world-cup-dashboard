@@ -70,7 +70,10 @@ const INDIA_CRICKET_FALLBACK = [
   { id: "espn-eng-ind-2026-t20-5", category: "Indian Men", matchNo: "5th T20I", teams: ["England", "India"], startISO: "2026-07-11T13:30:00.000Z", venue: "Rose Bowl, Southampton" },
   { id: "espn-eng-ind-2026-odi-1", category: "Indian Men", matchNo: "1st ODI", teams: ["England", "India"], startISO: "2026-07-14T13:30:00.000Z", venue: "Edgbaston, Birmingham" },
   { id: "espn-eng-ind-2026-odi-2", category: "Indian Men", matchNo: "2nd ODI", teams: ["England", "India"], startISO: "2026-07-16T13:30:00.000Z", venue: "Sophia Gardens, Cardiff" },
-  { id: "espn-eng-ind-2026-odi-3", category: "Indian Men", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T13:30:00.000Z", venue: "Lord's, London" }
+  { id: "espn-eng-ind-2026-odi-3", category: "Indian Men", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T13:30:00.000Z", venue: "Lord's, London" },
+  { id: "espn-zim-ind-2026-t20-1", category: "Indian Men", matchNo: "1st T20I", teams: ["Zimbabwe", "India"], startISO: "2026-07-23T12:00:00.000Z", venue: "Harare Sports Club, Harare", timeTBA: true },
+  { id: "espn-zim-ind-2026-t20-2", category: "Indian Men", matchNo: "2nd T20I", teams: ["Zimbabwe", "India"], startISO: "2026-07-25T12:00:00.000Z", venue: "Harare Sports Club, Harare", timeTBA: true },
+  { id: "espn-zim-ind-2026-t20-3", category: "Indian Men", matchNo: "3rd T20I", teams: ["Zimbabwe", "India"], startISO: "2026-07-26T12:00:00.000Z", venue: "Harare Sports Club, Harare", timeTBA: true }
 ];
 const WIMBLEDON_GRAPHQL = "https://www.wimbledon.com/graphql";
 const WIMBLEDON_AUTH = "77d2d900-b41b-4a6a-8700-b98f80bef920";
@@ -570,7 +573,8 @@ const CRICKET_SHORT = {
   Pakistan: "PAK",
   "South Africa": "SA",
   "Sri Lanka": "SL",
-  "West Indies": "WI"
+  "West Indies": "WI",
+  Zimbabwe: "ZIM"
 };
 
 function cricketShort(team = "") {
@@ -603,7 +607,13 @@ function cricketScheduledState(match, now = Date.now()) {
 
 function cricketScheduleStatus(match, state) {
   if (match.status) return match.status;
-  if (state === "Upcoming") return match.venue ? `Starts ${match.startISO} - ${match.venue}` : `Starts ${match.startISO}`;
+  if (state === "Upcoming") {
+    const start = new Date(match.startISO || "");
+    const startLabel = match.timeTBA && Number.isFinite(start.getTime())
+      ? start.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short" })
+      : match.startISO;
+    return match.venue ? `Starts ${startLabel} - ${match.venue}` : `Starts ${startLabel}`;
+  }
   if (state === "Live") return "Match in progress - live score pending";
   return "Result pending update";
 }
@@ -618,7 +628,10 @@ function inferIndiaMatchNo(match) {
     "2026-07-11": "5th T20I",
     "2026-07-14": "1st ODI",
     "2026-07-16": "2nd ODI",
-    "2026-07-19": "3rd ODI"
+    "2026-07-19": "3rd ODI",
+    "2026-07-23": "1st T20I",
+    "2026-07-25": "2nd T20I",
+    "2026-07-26": "3rd T20I"
   })[date] || match.matchNo || "Indian Men";
 }
 

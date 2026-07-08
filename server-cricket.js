@@ -58,7 +58,10 @@ const INDIA_FUTURE_FIXTURES = [
   { id: "espn-eng-ind-2026-t20-5", matchNo: "5th T20I", teams: ["England", "India"], startISO: "2026-07-11T13:30:00.000Z", venue: "Rose Bowl, Southampton", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
   { id: "espn-eng-ind-2026-odi-1", matchNo: "1st ODI", teams: ["England", "India"], startISO: "2026-07-14T13:30:00.000Z", venue: "Edgbaston, Birmingham", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
   { id: "espn-eng-ind-2026-odi-2", matchNo: "2nd ODI", teams: ["England", "India"], startISO: "2026-07-16T13:30:00.000Z", venue: "Sophia Gardens, Cardiff", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
-  { id: "espn-eng-ind-2026-odi-3", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T13:30:00.000Z", venue: "Lord's, London", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" }
+  { id: "espn-eng-ind-2026-odi-3", matchNo: "3rd ODI", teams: ["England", "India"], startISO: "2026-07-19T13:30:00.000Z", venue: "Lord's, London", url: "https://www.espncricinfo.com/series/india-in-england-2026-1496488/match-schedule-fixtures-and-results" },
+  { id: "espn-zim-ind-2026-t20-1", matchNo: "1st T20I", teams: ["Zimbabwe", "India"], startISO: "2026-07-23T12:00:00.000Z", venue: "Harare Sports Club, Harare", url: "https://www.espncricinfo.com/series/india-in-zimbabwe-2026-1530058", timeTBA: true },
+  { id: "espn-zim-ind-2026-t20-2", matchNo: "2nd T20I", teams: ["Zimbabwe", "India"], startISO: "2026-07-25T12:00:00.000Z", venue: "Harare Sports Club, Harare", url: "https://www.espncricinfo.com/series/india-in-zimbabwe-2026-1530058", timeTBA: true },
+  { id: "espn-zim-ind-2026-t20-3", matchNo: "3rd T20I", teams: ["Zimbabwe", "India"], startISO: "2026-07-26T12:00:00.000Z", venue: "Harare Sports Club, Harare", url: "https://www.espncricinfo.com/series/india-in-zimbabwe-2026-1530058", timeTBA: true }
 ];
 
 const INDIA_RESULT_FIXTURES = [
@@ -205,6 +208,13 @@ function scheduledFixtureState(fixture, now = Date.now()) {
 function fixtureStartLabel(fixture) {
   const start = new Date(fixture.startISO || "");
   if (!Number.isFinite(start.getTime())) return "time TBA";
+  if (fixture.timeTBA) {
+    return start.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short"
+    });
+  }
   return start.toLocaleString("en-IN", {
     timeZone: "Asia/Kolkata",
     day: "2-digit",
