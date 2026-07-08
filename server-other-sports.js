@@ -430,6 +430,11 @@ function tennisBreakStats(c) {
   };
 }
 
+function tennisServingFlag(c) {
+  return [c?.serving, c?.isServing, c?.hasServe, c?.server, c?.possession, c?.isPossession]
+    .some(value => value === true || value === "true" || value === 1 || value === "1");
+}
+
 function normalizeTennisCompetition(comp, event, sourceLeague) {
   const players = (comp.competitors || []).map(c => ({
     id: c.id,
@@ -440,6 +445,7 @@ function normalizeTennisCompetition(comp, event, sourceLeague) {
     winner: Boolean(c.winner),
     seed: c.curatedRank?.current || "",
     country: tennisCountry(c),
+    serving: tennisServingFlag(c),
     stats: tennisBreakStats(c)
   }));
   const seededNames = players.map(seededPlayerName);
