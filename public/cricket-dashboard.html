@@ -619,7 +619,7 @@ function sortDashboardMatches(matches){
 
     if(stateOf(a) === "Finished" && stateOf(b) === "Finished"){
       if(activeCompetition==="Test Championship"){
-        return finishedEndSortValue(a)-finishedEndSortValue(b);
+        return finishedEndSortValue(b)-finishedEndSortValue(a);
       }
       const aValue=finishedSortValue(a),bValue=finishedSortValue(b);
       if(aValue!==bValue)return bValue-aValue;
@@ -664,7 +664,7 @@ function getDisplayMatches(){
   }
   const live=matches.filter(m=>stateOf(m)==="Live");
   const finished=matches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>activeCompetition==="Test Championship"
-    ? finishedEndSortValue(a)-finishedEndSortValue(b)
+    ? finishedEndSortValue(b)-finishedEndSortValue(a)
     : finishedSortValue(b)-finishedSortValue(a));
   const upcoming=matches.filter(isFutureUpcoming).sort((a,b)=>parseStartTime(a)-parseStartTime(b));
   if(activeCompetition==="Test Championship"){
@@ -810,6 +810,13 @@ function getMatchNumber(m){
     if(teams==="australia women|england women")return"33rd Match - Final";
     if(teams==="england women|south africa women")return"32nd Match - 2nd Semi-final";
     if(teams==="australia women|west indies women")return"31st Match - 1st Semi-final";
+  }
+  if(m?.category==="Test Championship"){
+    const teams=[...(m?.teams||[])].map(team=>String(team||"").toLowerCase()).sort().join("|");
+    const start=String(m?.startISO||"").slice(0,10);
+    if(teams==="sri lanka|west indies"&&start==="2026-07-03")return"2nd Test";
+    if(teams==="sri lanka|west indies"&&start==="2026-06-25")return"1st Test";
+    if(teams==="england|new zealand"&&start==="2026-06-25")return"3rd Test";
   }
 
   const text = `${m?.name || ""} ${m?.status || ""} ${m?.url || ""}`.toLowerCase();
@@ -1530,7 +1537,7 @@ function renderMain(){
       ? tournamentMatches.filter(isFutureUpcoming).slice(0,3)
       : activeFilter==="Finished"
         ? tournamentMatches.filter(m=>stateOf(m)==="Finished").sort((a,b)=>activeCompetition==="Test Championship"
-          ? finishedEndSortValue(a)-finishedEndSortValue(b)
+          ? finishedEndSortValue(b)-finishedEndSortValue(a)
           : parseStartTime(b)-parseStartTime(a)).slice(0,3)
         : tournamentMatches.filter(m=>stateOf(m)===activeFilter).slice(0,3);
   }
