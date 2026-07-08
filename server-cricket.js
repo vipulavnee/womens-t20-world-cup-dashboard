@@ -457,6 +457,17 @@ function inferCompletedResult(teams, scores) {
 
 function extractOwnResult(text, teams) {
   const source = clean(text);
+  const shorts = (teams || []).map(getTeamShort).filter(Boolean);
+  const escapedShorts = shorts.map(short => short.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (
+    escapedShorts.length >= 2 &&
+    (
+      new RegExp(`\\b${escapedShorts[0]}\\s+vs\\s+${escapedShorts[1]}\\s+-\\s+(?:Draw|Match drawn)\\b`, "i").test(source) ||
+      new RegExp(`\\b${escapedShorts[1]}\\s+vs\\s+${escapedShorts[0]}\\s+-\\s+(?:Draw|Match drawn)\\b`, "i").test(source)
+    )
+  ) {
+    return "Match drawn";
+  }
   for (const team of teams) {
     const escaped = team.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const match = source.match(
@@ -720,6 +731,7 @@ function classifyState(status) {
 
   if (
     text.includes("won") ||
+    text.includes("draw") ||
     text === "complete" ||
     text.includes("completed") ||
     text.includes("no result") ||
@@ -1305,7 +1317,7 @@ async function scrapeWomensT20WorldCup() {
       finalScores = chooseBestScores([...finalScores, ...scorecardScores]);
     }
 
-    if (state === "Finished" && !/(?:won|tied|no result|abandoned)/i.test(status)) {
+    if (state === "Finished" && !/(?:won|tied|draw|no result|abandoned)/i.test(status)) {
       status = inferCompletedResult(item.teams, finalScores);
     }
 
