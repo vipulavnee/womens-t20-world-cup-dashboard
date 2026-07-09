@@ -336,6 +336,28 @@ function tennisStatsForTeam(statsMap, team) {
   return {};
 }
 
+function tennisDedupeKey(item) {
+  if (item.wimbledonMatchId) return `tennis-wimbledon-${item.wimbledonMatchId}`;
+  const people = (item.teams || [])
+    .map(team => tennisPersonKey(team.name || team.short))
+    .filter(Boolean)
+    .sort()
+    .join("|");
+  if (people) return `tennis-${people}-${tennisRoundCode(item.stage, item.stage) || item.stage || ""}`;
+  return "";
+}
+
+function shouldReplaceDedupe(prev, item) {
+  if (!prev) return true;
+  if (prev.sport === "Tennis" && item.sport === "Tennis") {
+    if (Boolean(item.wimbledonMatchId) !== Boolean(prev.wimbledonMatchId)) return Boolean(item.wimbledonMatchId);
+    const itemBreaks = (item.teams || []).some(team => team.stats?.breakPointsWon);
+    const prevBreaks = (prev.teams || []).some(team => team.stats?.breakPointsWon);
+    if (itemBreaks !== prevBreaks) return itemBreaks;
+  }
+  return stateRank(item.state) > stateRank(prev.state);
+}
+
 function isCertificateError(err) {
   return ["CERT_HAS_EXPIRED", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "SELF_SIGNED_CERT_IN_CHAIN"]
     .includes(err?.code);
@@ -903,9 +925,11 @@ async function fetchTennis() {
 function dedupe(items) {
   const map = new Map();
   for (const item of items) {
-    const key = `${item.sport}|${item.name}|${item.startISO}|${item.stage}`;
+    const key = item.sport === "Tennis"
+      ? (tennisDedupeKey(item) || `${item.sport}|${item.name}|${item.startISO}|${item.stage}`)
+      : `${item.sport}|${item.name}|${item.startISO}|${item.stage}`;
     const prev = map.get(key);
-    if (!prev || stateRank(item.state) > stateRank(prev.state)) map.set(key, item);
+    if (shouldReplaceDedupe(prev, item)) map.set(key, item);
   }
   return [...map.values()];
 }
