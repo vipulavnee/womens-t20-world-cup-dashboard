@@ -18,6 +18,8 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,
 .star-legend{color:#dbeafe;white-space:nowrap;font-weight:950}.star-symbol{display:inline-flex;margin-left:4px;color:var(--green);font-size:19.36px;font-weight:950;text-shadow:0 0 9px #00ff8588;vertical-align:middle;line-height:1}
 .btn{background:#1d4ed8;color:#fff;cursor:pointer}.select{min-width:260px;background:#071226;color:#fff;border:3px solid var(--yellow);box-shadow:0 0 0 3px #ffb00022,0 0 22px #ffb00080}
 .hero{height:clamp(205px,29vh,260px);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:4px;background:linear-gradient(rgba(0,0,0,.25),rgba(0,0,0,.45)),url('./stadium.png') center/cover no-repeat}
+.hero.football-bg{background-image:linear-gradient(rgba(0,0,0,.22),rgba(0,0,0,.48)),url('./football-bg.png')}
+.hero.tennis-bg{background-image:linear-gradient(rgba(0,0,0,.34),rgba(0,0,0,.58)),url('./wimbledon-bg.png');background-size:cover;background-position:center}
 .hero-grid{height:100%;display:grid;grid-template-columns:1fr .9fr}.hero-left,.hero-right{padding:10px 13px;background:rgba(0,0,0,.34);overflow:hidden}
 .eyebrow{font-size:16.72px;color:var(--green);font-weight:950}.event-title{font-size:25.52px;line-height:1.02;margin:8px 0;font-weight:950;letter-spacing:-.04em}
 .hero-main{display:inline-block;background:rgba(4,17,31,.84);border:1px solid #ffffff22;border-radius:10px;padding:5px 9px;font-size:17.6px;font-weight:950;max-width:100%}
@@ -593,7 +595,8 @@ function matchDetail(e){
 }
 function heroEyebrow(e){return e.sport==="Tennis"&&isTennisTab()?stateOf(e):`${e.competition} • ${stateOf(e)}`}
 function scoreTitle(e){if(stateOf(e)==="Live")return "LIVE SCORE";if(stateOf(e)==="Upcoming")return "UPCOMING";return e?.sport==="Tennis"?"MATCH INFO":"MTCH INFO"}
-function renderHero(e){$("heroMount").innerHTML=`<div class="hero"><div class="hero-grid"><div class="hero-left"><div class="eyebrow">${heroEyebrow(e)}</div><div class="event-title">${lineup(e)}${rowTitle(e)}${starTag(e)}</div><div class="hero-main">${footballHeroMain(e)}</div><div class="match-status">${matchDetail(e)}</div></div><div class="hero-right"><div class="score-title">${scoreTitle(e)}</div><div class="scoreboard">${scoreRows(e)}</div><div class="stats">${detailStats(e).map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join("")}</div></div></div></div>`}
+function heroBgClass(e){return e?.sport==="Football"?"football-bg":e?.sport==="Tennis"?"tennis-bg":""}
+function renderHero(e){$("heroMount").innerHTML=`<div class="hero ${heroBgClass(e)}"><div class="hero-grid"><div class="hero-left"><div class="eyebrow">${heroEyebrow(e)}</div><div class="event-title">${lineup(e)}${rowTitle(e)}${starTag(e)}</div><div class="hero-main">${footballHeroMain(e)}</div><div class="match-status">${matchDetail(e)}</div></div><div class="hero-right"><div class="score-title">${scoreTitle(e)}</div><div class="scoreboard">${scoreRows(e)}</div><div class="stats">${detailStats(e).map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join("")}</div></div></div></div>`}
 function nextOther(){return sortEvents(sportEvents().filter(e=>isFuture(e)&&e.id!==selectedId))[0]}
 function renderCards(e){
   if(e.sport==="Football"){
