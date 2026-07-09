@@ -350,7 +350,11 @@ function starMatches(e){
 }
 function starFilterEvents(list){
   const starred=list.filter(e=>starMatches(e).length);
-  return isTennisTab()?starred.filter(isFuture):starred;
+  if(!isTennisTab())return starred;
+  const live=starred.filter(e=>stateOf(e)==="Live");
+  const upcoming=sortEvents(starred.filter(isFuture));
+  const finished=sortEvents(starred.filter(e=>stateOf(e)==="Finished"));
+  return [...live,...upcoming,...finished].filter((e,i,a)=>a.findIndex(x=>x.id===e.id)===i);
 }
 function footballPastWinner(t){
   const name=String(t?.name||t?.short||"").toLowerCase();
