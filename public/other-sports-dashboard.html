@@ -499,6 +499,7 @@ function tennisNextRoundLineup(){
   const progressed=rows.filter(e=>stateOf(e)!=="Upcoming");
   const roundNo=progressed.length?Math.max(...progressed.map(tennisRoundNo)):(open.length?Math.min(...open.map(tennisRoundNo)):Math.max(...rows.map(tennisRoundNo)));
   const current=rows.filter(e=>tennisRoundNo(e)===roundNo).sort((a,b)=>a.roundMatchNumber-b.roundMatchNumber);
+  const scheduled=rows.filter(e=>tennisRoundNo(e)===roundNo+1&&stateOf(e)==="Upcoming");
   const out=[];
   for(let i=0;i<current.length;i+=2){
     const a=current[i],b=current[i+1];
@@ -506,7 +507,8 @@ function tennisNextRoundLineup(){
     const draw=a.drawName||eventLabel(),nextRound=tennisNextRoundName(roundNo),name=`${tennisPlayerOrPlaceholder(a)} vs ${tennisPlayerOrPlaceholder(b)}`;
     const ready=stateOf(a)==="Finished"&&stateOf(b)==="Finished"&&(a.teams||[]).some(t=>t.winner)&&(b.teams||[]).some(t=>t.winner);
     const status=ready?"Lineup ready":"Awaiting winners";
-    out.push({synthetic:true,id:`tennis-next-${activeSport}-${roundNo}-${i}`,sport:"Tennis",competition:"Wimbledon",name,lineupName:name,lineupLabel:`${draw} • ${nextRound} • Lineup ${Math.floor(i/2)+1}`,state:"Upcoming",status,stage:nextRound,startISO:"",teams:[],detail:status});
+    const scheduledMatch=scheduled.find(e=>e.roundMatchNumber===Math.floor(i/2)+1)||scheduled[Math.floor(i/2)];
+    out.push({synthetic:true,id:`tennis-next-${activeSport}-${roundNo}-${i}`,sport:"Tennis",competition:"Wimbledon",name,lineupName:name,lineupLabel:`${draw} • ${nextRound} • Lineup ${Math.floor(i/2)+1}`,state:"Upcoming",status,stage:nextRound,startISO:scheduledMatch?.startISO||"",teams:[],detail:status});
   }
   return out;
 }

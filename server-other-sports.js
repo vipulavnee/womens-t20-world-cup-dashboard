@@ -318,6 +318,24 @@ function tennisPairKeys(names = []) {
   return [direct, reverse].filter(Boolean);
 }
 
+function tennisTeamPairKeys(teams = []) {
+  const leftNames = [teams[0]?.short, teams[0]?.name].filter(Boolean);
+  const rightNames = [teams[1]?.short, teams[1]?.name].filter(Boolean);
+  const keys = [];
+  for (const left of leftNames) {
+    for (const right of rightNames) keys.push(...tennisPairKeys([left, right]));
+  }
+  return keys;
+}
+
+function tennisStatsForTeam(statsMap, team) {
+  for (const name of [team.short, team.name].filter(Boolean)) {
+    const stats = statsMap.get(tennisPersonKey(name));
+    if (stats) return stats;
+  }
+  return {};
+}
+
 function isCertificateError(err) {
   return ["CERT_HAS_EXPIRED", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "SELF_SIGNED_CERT_IN_CHAIN"]
     .includes(err?.code);
@@ -329,11 +347,25 @@ function statPair(won, total) {
   return `${won}/${total}`;
 }
 
+async function mapLimit(items, limit, worker) {
+  const results = [];
+  let index = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (index < items.length) {
+      const current = index++;
+      results[current] = await worker(items[current], current);
+    }
+  });
+  await Promise.allSettled(workers);
+  return results;
+}
+
 function wimbledonTeamNames(team = []) {
   const first = team?.[0] || {};
   return [
     first.displayNameA,
     [first.firstNameA, first.lastNameA].filter(Boolean).join(" "),
+    [first.lastNameA, first.firstNameA].filter(Boolean).join(" "),
     first.lastNameA
   ].filter(Boolean);
 }
@@ -424,8 +456,7 @@ async function fetchWimbledonCompletedMatchIds() {
       timeout: 12000
     });
     const days = (dayRes.data?.data?.completedMatchDays || [])
-      .filter(day => !day.quals)
-      .slice(0, 10);
+      .filter(day => !day.quals);
     const results = await Promise.allSettled(days.map(day => http.post(WIMBLEDON_GRAPHQL, {
       operationName: "CompletedMatches",
       query: matchesQuery,
@@ -738,18 +769,18 @@ async function fetchTennis() {
     }
   }
   const recentFinished = rows
-    .filter(row => row.state === "Finished")
-    .sort((a, b) => b.sortTime - a.sortTime)
-    .slice(0, 16);
+    .filter(row => row.state === "Finished" && /singles/i.test(row.stage || ""))
+    .sort((a, b) => b.sortTime - a.sortTime);
   const finishedStats = new Map();
-  await Promise.allSettled(recentFinished.map(async row => {
-    const keys = tennisPairKeys((row.teams || []).map(t => t.short || t.name));
-    const matchId = keys.map(key => wimbledonCompletedIds.get(key)).find(Boolean);
-    if (!matchId || finishedStats.has(matchId)) return;
+  const finishedMatchIds = [...new Set(recentFinished.map(row => {
+    const keys = tennisTeamPairKeys(row.teams || []);
+    return keys.map(key => wimbledonCompletedIds.get(key)).find(Boolean);
+  }).filter(Boolean))];
+  await mapLimit(finishedMatchIds, 6, async matchId => {
     finishedStats.set(matchId, await fetchWimbledonSlamtrackerStats(matchId));
-  }));
+  });
   for (const row of recentFinished) {
-    const keys = tennisPairKeys((row.teams || []).map(t => t.short || t.name));
+    const keys = tennisTeamPairKeys(row.teams || []);
     const matchId = keys.map(key => wimbledonCompletedIds.get(key)).find(Boolean);
     const statsMap = finishedStats.get(matchId);
     if (!statsMap) continue;
@@ -758,7 +789,7 @@ async function fetchTennis() {
       ...team,
       stats: {
         ...(team.stats || {}),
-        ...(statsMap.get(tennisPersonKey(team.short || team.name)) || {})
+        ...tennisStatsForTeam(statsMap, team)
       }
     }));
   }
