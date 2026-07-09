@@ -6,8 +6,11 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || process.env.SPORTS_PORT || 3003;
 const CACHE_TTL_MS = 20000;
+const FINISHED_BREAK_IMMEDIATE_LIMIT = 24;
 let cache = { data: null, fetchedAt: 0 };
 let fetchPromise = null;
+const finishedBreakStatsCache = new Map();
+let finishedBreakBackfillPromise = null;
 
 app.use(cors());
 app.use(express.json());
@@ -334,6 +337,35 @@ function tennisStatsForTeam(statsMap, team) {
     if (stats) return stats;
   }
   return {};
+}
+
+function mergeTennisStats(row, statsMap) {
+  if (!statsMap) return row;
+  row.teams = (row.teams || []).map(team => ({
+    ...team,
+    stats: {
+      ...(team.stats || {}),
+      ...tennisStatsForTeam(statsMap, team)
+    }
+  }));
+  return row;
+}
+
+async function cacheFinishedBreakStats(matchIds = []) {
+  const missing = [...new Set(matchIds)].filter(matchId => matchId && !finishedBreakStatsCache.has(matchId));
+  await mapLimit(missing, 6, async matchId => {
+    finishedBreakStatsCache.set(matchId, await fetchWimbledonSlamtrackerStats(matchId));
+  });
+}
+
+function startFinishedBreakBackfill(matchIds = []) {
+  const missing = [...new Set(matchIds)].filter(matchId => matchId && !finishedBreakStatsCache.has(matchId));
+  if (!missing.length || finishedBreakBackfillPromise) return;
+  finishedBreakBackfillPromise = cacheFinishedBreakStats(missing)
+    .catch(err => {
+      if (process.env.DEBUG_SPORTS) console.warn("Wimbledon finished break stat backfill failed:", err.message);
+    })
+    .finally(() => { finishedBreakBackfillPromise = null; });
 }
 
 function tennisDedupeKey(item) {
@@ -897,27 +929,20 @@ async function fetchTennis() {
   const recentFinished = rows
     .filter(row => row.state === "Finished" && /singles/i.test(row.stage || ""))
     .sort((a, b) => b.sortTime - a.sortTime);
-  const finishedStats = new Map();
   const finishedMatchIds = [...new Set(recentFinished.map(row => {
     const keys = tennisTeamPairKeys(row.teams || []);
     return keys.map(key => wimbledonCompletedIds.get(key)).find(Boolean);
   }).filter(Boolean))];
-  await mapLimit(finishedMatchIds, 6, async matchId => {
-    finishedStats.set(matchId, await fetchWimbledonSlamtrackerStats(matchId));
-  });
+  const immediateIds = finishedMatchIds.filter(matchId => !finishedBreakStatsCache.has(matchId)).slice(0, FINISHED_BREAK_IMMEDIATE_LIMIT);
+  await cacheFinishedBreakStats(immediateIds);
+  startFinishedBreakBackfill(finishedMatchIds.slice(FINISHED_BREAK_IMMEDIATE_LIMIT));
   for (const row of recentFinished) {
     const keys = tennisTeamPairKeys(row.teams || []);
     const matchId = keys.map(key => wimbledonCompletedIds.get(key)).find(Boolean);
-    const statsMap = finishedStats.get(matchId);
+    if (matchId) row.wimbledonMatchId = matchId;
+    const statsMap = finishedBreakStatsCache.get(matchId);
     if (!statsMap) continue;
-    row.wimbledonMatchId = matchId;
-    row.teams = (row.teams || []).map(team => ({
-      ...team,
-      stats: {
-        ...(team.stats || {}),
-        ...tennisStatsForTeam(statsMap, team)
-      }
-    }));
+    mergeTennisStats(row, statsMap);
   }
   return withTennisLineupLabels(dedupe(rows));
 }
