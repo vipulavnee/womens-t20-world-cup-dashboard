@@ -120,8 +120,8 @@ const TENNIS_GRAND_SLAM_WINNERS=[
 
 function stateOf(e){return e?.state||"Unknown"}
 function parseTime(e){const d=new Date(e?.startISO||0);return Number.isFinite(d.getTime())?d:new Date(0)}
-function isTennisGents(e){return e.sport==="Tennis"&&String(e.stage||"").toLowerCase().startsWith("men's singles")}
-function isTennisLadies(e){return e.sport==="Tennis"&&String(e.stage||"").toLowerCase().startsWith("women's singles")}
+function isTennisGents(e){const s=String(e.stage||"").toLowerCase();return e.sport==="Tennis"&&(s.startsWith("men's singles")||s.startsWith("gentlemen's singles"))}
+function isTennisLadies(e){const s=String(e.stage||"").toLowerCase();return e.sport==="Tennis"&&(s.startsWith("women's singles")||s.startsWith("ladies' singles"))}
 function sportEvents(){if(activeSport==="All")return allEvents;if(activeSport==="TennisMen")return allEvents.filter(isTennisGents);if(activeSport==="TennisWomen")return allEvents.filter(isTennisLadies);if(activeSport==="CricketIndiaMen")return allEvents.filter(e=>e.sport==="Cricket"&&e.competition==="Indian Men");return allEvents.filter(e=>e.sport===activeSport)}
 function eventLabel(){return activeSport==="Football"?"Football World Cup":activeSport==="CricketIndiaMen"?"Indian Men Cricket":activeSport==="TennisMen"?"Wimbledon Gentlemen's Singles":activeSport==="TennisWomen"?"Wimbledon Ladies' Singles":"All Sports"}
 function isTennisTab(){return activeSport==="TennisMen"||activeSport==="TennisWomen"}

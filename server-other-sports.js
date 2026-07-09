@@ -370,6 +370,91 @@ function wimbledonTeamNames(team = []) {
   ].filter(Boolean);
 }
 
+function wimbledonTeamDisplay(team = []) {
+  const first = team?.[0] || {};
+  return first.displayNameA || [first.firstNameA, first.lastNameA].filter(Boolean).join(" ") || "TBD";
+}
+
+function wimbledonFullTeamName(team = []) {
+  const first = team?.[0] || {};
+  return [first.firstNameA, first.lastNameA].filter(Boolean).join(" ") || first.displayNameA || "TBD";
+}
+
+function wimbledonSetDisplay(score = {}) {
+  const base = score.scoreDisplay ?? score.score ?? "";
+  const tiebreak = score.tiebreakDisplay ?? score.tiebreak ?? "";
+  return tiebreak ? `${base}(${tiebreak})` : String(base);
+}
+
+function wimbledonTeamSets(match, side) {
+  const teamKey = side === 1 ? "team1" : "team2";
+  return (match.score?.tennisSets || [])
+    .map((set, index) => ({
+      set: set.set || index + 1,
+      value: set[teamKey]?.score ?? set[teamKey]?.scoreDisplay ?? "",
+      display: wimbledonSetDisplay(set[teamKey])
+    }))
+    .filter(set => set.display !== "");
+}
+
+function normalizeWimbledonCompletedMatch(match) {
+  const team1Name = wimbledonFullTeamName(match.team1);
+  const team2Name = wimbledonFullTeamName(match.team2);
+  const team1Short = wimbledonTeamDisplay(match.team1);
+  const team2Short = wimbledonTeamDisplay(match.team2);
+  const team1Sets = wimbledonTeamSets(match, 1);
+  const team2Sets = wimbledonTeamSets(match, 2);
+  const team1Won = Boolean(match.team1?.[0]?.won) || match.winner === "1";
+  const team2Won = Boolean(match.team2?.[0]?.won) || match.winner === "2";
+  const stage = [match.eventName, match.roundName].filter(Boolean).join(" • ");
+  const startTime = Number(match.epoch);
+  const startISO = Number.isFinite(startTime) && startTime > 0
+    ? new Date(startTime > 10000000000 ? startTime : startTime * 1000).toISOString()
+    : "";
+  const teams = [
+    {
+      name: team1Name,
+      short: team1Short,
+      score: String(match.score?.setsWon?.[0] ?? match.team1?.[0]?.totalSetsWon ?? ""),
+      sets: team1Sets,
+      winner: team1Won,
+      seed: match.team1?.[0]?.seed || "",
+      country: match.team1?.[0]?.nationA || "",
+      stats: {}
+    },
+    {
+      name: team2Name,
+      short: team2Short,
+      score: String(match.score?.setsWon?.[1] ?? match.team2?.[0]?.totalSetsWon ?? ""),
+      sets: team2Sets,
+      winner: team2Won,
+      seed: match.team2?.[0]?.seed || "",
+      country: match.team2?.[0]?.nationA || "",
+      stats: {}
+    }
+  ];
+  return {
+    id: `wimbledon-completed-${match.matchId}`,
+    wimbledonMatchId: match.matchId,
+    sport: "Tennis",
+    competition: "Wimbledon",
+    name: teams.map(seededPlayerName).join(" vs "),
+    shortName: teams.map(seededPlayerShort).join(" vs "),
+    state: "Finished",
+    status: match.status || "Completed",
+    clock: "",
+    startISO,
+    venue: match.courtName || match.shortCourtName || "",
+    stage,
+    lineupLabel: tennisRoundCode(match.roundName, match.eventName),
+    teams,
+    scoreText: teams.map(p => `${p.short} ${p.score}`).join(" | "),
+    detail: stage,
+    url: "",
+    sortTime: startISO ? parseDate(startISO).getTime() : 0
+  };
+}
+
 async function fetchWimbledonSlamtrackerStats(matchId) {
   if (!matchId) return new Map();
   const query = `
@@ -421,7 +506,7 @@ async function fetchWimbledonSlamtrackerStats(matchId) {
   }
 }
 
-async function fetchWimbledonCompletedMatchIds() {
+async function fetchWimbledonCompletedMatches() {
   const daysQuery = `
     query CompletedMatchDays($year: Int!) {
       completedMatchDays(year: $year) {
@@ -437,8 +522,23 @@ async function fetchWimbledonCompletedMatchIds() {
         matches {
           matchId
           eventCode
-          team1 { displayNameA firstNameA lastNameA }
-          team2 { displayNameA firstNameA lastNameA }
+          eventName
+          roundName
+          status
+          winner
+          epoch
+          courtName
+          shortCourtName
+          score {
+            setsWon
+            tennisSets {
+              set
+              team1 { score scoreDisplay tiebreak tiebreakDisplay }
+              team2 { score scoreDisplay tiebreak tiebreakDisplay }
+            }
+          }
+          team1 { displayNameA firstNameA lastNameA nationA seed won totalSetsWon }
+          team2 { displayNameA firstNameA lastNameA nationA seed won totalSetsWon }
         }
       }
     }
@@ -468,25 +568,27 @@ async function fetchWimbledonCompletedMatchIds() {
       },
       timeout: 12000
     })));
-    const map = new Map();
+    const matchIds = new Map();
+    const rows = [];
     for (const result of results) {
       if (result.status !== "fulfilled") continue;
       for (const match of result.value.data?.data?.completedMatches?.matches || []) {
         if (!["MS", "LS"].includes(match.eventCode) || !match.matchId) continue;
+        rows.push(normalizeWimbledonCompletedMatch(match));
         const names1 = wimbledonTeamNames(match.team1);
         const names2 = wimbledonTeamNames(match.team2);
-        for (const key of tennisPairKeys([names1[0], names2[0]])) map.set(key, match.matchId);
+        for (const key of tennisPairKeys([names1[0], names2[0]])) matchIds.set(key, match.matchId);
         for (const left of names1) {
           for (const right of names2) {
-            for (const key of tennisPairKeys([left, right])) map.set(key, match.matchId);
+            for (const key of tennisPairKeys([left, right])) matchIds.set(key, match.matchId);
           }
         }
       }
     }
-    return map;
+    return { matchIds, rows };
   } catch (err) {
-    if (process.env.DEBUG_SPORTS) console.warn("Wimbledon completed match id lookup failed:", err.message);
-    return new Map();
+    if (process.env.DEBUG_SPORTS) console.warn("Wimbledon completed match lookup failed:", err.message);
+    return { matchIds: new Map(), rows: [] };
   }
 }
 
@@ -733,10 +835,10 @@ async function fetchFootball() {
 }
 
 async function fetchTennis() {
-  const [scoreResults, wimbledonScores, wimbledonCompletedIds] = await Promise.all([
+  const [scoreResults, wimbledonScores, wimbledonCompleted] = await Promise.all([
     Promise.allSettled(TENNIS_URLS.map(url => http.get(url))),
     ENABLE_WIMBLEDON_ENRICHMENT ? fetchWimbledonLiveScores() : Promise.resolve(new Map()),
-    ENABLE_WIMBLEDON_ENRICHMENT ? fetchWimbledonCompletedMatchIds() : Promise.resolve(new Map())
+    ENABLE_WIMBLEDON_ENRICHMENT ? fetchWimbledonCompletedMatches() : Promise.resolve({ matchIds: new Map(), rows: [] })
   ]);
   const rows = [];
   for (const result of scoreResults) {
@@ -752,6 +854,8 @@ async function fetchTennis() {
       }
     }
   }
+  rows.push(...(wimbledonCompleted.rows || []));
+  const wimbledonCompletedIds = wimbledonCompleted.matchIds || new Map();
   for (const row of rows) {
     const keys = tennisPairKeys((row.teams || []).map(t => t.short || t.name));
     const enrichment = keys.map(key => wimbledonScores.get(key)).find(Boolean);
